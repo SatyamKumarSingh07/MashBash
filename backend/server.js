@@ -65,6 +65,7 @@ initializeData().then(() => {
         id: matchId,
         points: [],
         completedSets: [],
+        matchType: req.body.matchType.toLowerCase() // Normalize matchType to lowercase
       };
       data.matches.push(newMatch);
       await jsonfile.writeFile(DATA_FILE, data, { spaces: 2 });
@@ -92,6 +93,7 @@ initializeData().then(() => {
         ...data.matches[matchIndex],
         ...req.body,
         id: matchId,
+        matchType: req.body.matchType?.toLowerCase() || data.matches[matchIndex].matchType // Normalize matchType to lowercase
       };
 
       data.matches[matchIndex] = updatedMatch;
@@ -137,11 +139,11 @@ initializeData().then(() => {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Matches");
 
-      // Define columns including Winner and Set Points
       worksheet.columns = [
         { header: "Match ID", key: "id", width: 25 },
-        { header: "Player A", key: "playerA", width: 20 },
-        { header: "Player B", key: "playerB", width: 20 },
+        { header: "Match Type", key: "matchType", width: 15 },
+        { header: "Player A / Team A", key: "entityA", width: 25 },
+        { header: "Player B / Team B", key: "entityB", width: 25 },
         { header: "Total Sets", key: "totalSets", width: 10 },
         { header: "Venue", key: "venue", width: 20 },
         { header: "Date", key: "date", width: 15 },
@@ -150,28 +152,30 @@ initializeData().then(() => {
         { header: "Set Points", key: "setPoints", width: 30 },
       ];
 
-      // Add rows with calculated winner and set points
       data.matches.forEach((match) => {
         let winner = "N/A";
         let setPoints = "N/A";
+        let entityA = match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`;
+        let entityB = match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`;
 
         if (match.status === "completed" && match.completedSets && match.completedSets.length > 0) {
           const winsA = match.completedSets.reduce(
-            (count, set) => count + (set.winner === match.playerA ? 1 : 0),
+            (count, set) => count + (set.winner === (match.matchType.toLowerCase() === "singles" ? match.playerA : "Team A") ? 1 : 0),
             0
           );
           const winsB = match.completedSets.reduce(
-            (count, set) => count + (set.winner === match.playerB ? 1 : 0),
+            (count, set) => count + (set.winner === (match.matchType.toLowerCase() === "singles" ? match.playerB : "Team B") ? 1 : 0),
             0
           );
-          winner = winsA > winsB ? match.playerA : winsB > winsA ? match.playerB : "Tie";
+          winner = winsA > winsB ? (match.matchType.toLowerCase() === "singles" ? match.playerA : "Team A") : winsB > winsA ? (match.matchType.toLowerCase() === "singles" ? match.playerB : "Team B") : "Tie";
           setPoints = match.completedSets.map(set => `${set.scoreA}-${set.scoreB}`).join(", ");
         }
 
         worksheet.addRow({
           id: match.id,
-          playerA: match.playerA,
-          playerB: match.playerB,
+          matchType: match.matchType,
+          entityA: entityA,
+          entityB: entityB,
           totalSets: match.totalSets,
           venue: match.venue,
           date: match.date,

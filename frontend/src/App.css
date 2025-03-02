@@ -950,3 +950,170 @@ button:hover {
   }.point-item span {
     margin-right: 5px; /* Adds spacing between elements */
   }
+  .players, .player-name {
+    max-width: 100%;
+    word-wrap: break-word;
+  }.winner {
+    font-weight: bold;
+    color: #28a745;
+    max-width: 100%;
+    word-wrap: break-word;
+  }.export-btn {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+  
+  .export-btn:hover {
+    background-color: #0056b3;
+  }.toss-btn, .serve-btn, .receive-btn {
+    padding: 6px 25px;
+    margin: 5px 0;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+  }
+  
+  .toss-btn:hover, .serve-btn:hover, .receive-btn:hover {
+    background-color: #0056b3;
+  }
+  
+  .toss-result {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+  }
+  .match-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .player-name {
+    color: #ff0000; /* Red for singles, adjust as needed */
+  }.match-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .player-name {
+    color: #ff0000; /* Red for player names, as shown in your image */
+  }
+  /* Navbar container */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #333;
+    padding: 10px 20px;
+    color: white;
+  }
+  
+  /* Brand/logo */
+  .navbar-brand .mashbash-heading {
+    margin: 0;
+    font-size: 24px;
+    cursor: pointer;
+  }
+  
+  /* Hamburger button for mobile */
+  .hamburger-btn {
+    display: none; /* Hidden by default */
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+  }
+  
+  /* Navbar links */
+  .navbar-links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  /* Navbar buttons */
+  .nav-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 10px;
+    transition: background-color 0.3s;
+  }
+  
+  .nav-btn:hover {
+    background-color: #555;
+  }
+  
+  /* Dropdown menu */
+  .dropdown {
+    position: relative;
+  }
+  
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #333;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+  }
+  
+  .dropdown-content button {
+    width: 100%;
+    text-align: left;
+    padding: 10px;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .dropdown-content button:hover {
+    background-color: #555;
+  }
+  
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .hamburger-btn {
+      display: block; /* Show hamburger button on mobile */
+    }
+  
+    .navbar-links {
+      display: none; /* Hide navbar links by default on mobile */
+      flex-direction: column;
+      position: absolute;
+      top: 60px; /* Adjust based on navbar height */
+      right: 0;
+      background-color: #333;
+      width: 100%;
+      padding: 10px;
+      box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    }
+  
+    .navbar-links.active {
+      display: flex; /* Show navbar links when mobile menu is open */
+    }
+  
+    .dropdown-content {
+      position: static; /* Make dropdown content stack vertically on mobile */
+      box-shadow: none;
+    }
+  }
