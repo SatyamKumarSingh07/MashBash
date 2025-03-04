@@ -10,7 +10,10 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
   const [notificationA, setNotificationA] = useState(null);
   const [notificationB, setNotificationB] = useState(null);
   const [matchWinner, setMatchWinner] = useState(null);
-  const [servingTeam, setServingTeam] = useState(null); // Track serving team
+  const [servingTeam, setServingTeam] = useState(null);
+  const [servingPlayer, setServingPlayer] = useState(null);
+  const [teamACourt, setTeamACourt] = useState({ right: "", left: "" });
+  const [teamBCourt, setTeamBCourt] = useState({ right: "", left: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,7 +25,8 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
         if (response.data) {
           setMatch(response.data);
           initializeMatchState(response.data);
-          setServingTeam(response.data.servingTeam || null); // Initialize serving team from match data
+          setServingTeam(response.data.servingTeam || null);
+          initializeCourtAndServing(response.data);
         } else {
           setError("Match not found");
           setTimeout(() => navigate("/fixtures"), 3000);
@@ -40,7 +44,8 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
     if (foundMatch) {
       setMatch(foundMatch);
       initializeMatchState(foundMatch);
-      setServingTeam(foundMatch.servingTeam || null); // Initialize serving team from match data
+      setServingTeam(foundMatch.servingTeam || null);
+      initializeCourtAndServing(foundMatch);
       setLoading(false);
     } else {
       fetchMatch();
@@ -61,8 +66,26 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
         0
       );
       setMatchWinner(winsA > winsB 
-        ? (matchData.matchType.toLowerCase() === "singles" ? matchData.playerA : `${matchData.teamA.player1}/${matchData.teamA.player2}`) 
+        ? (matchData.matchType.toLowerCase() === "singles" ? matchData.playerA : `${matchData.teamA.player1}/${matchData.teamA.player2}`)
         : (matchData.matchType.toLowerCase() === "singles" ? matchData.playerB : `${matchData.teamB.player1}/${matchData.teamB.player2}`));
+    }
+  };
+
+  const initializeCourtAndServing = (matchData) => {
+    const isDoublesOrMixed = matchData.matchType.toLowerCase() === "doubles" || matchData.matchType.toLowerCase() === "mixed";
+    if (isDoublesOrMixed && matchData.teamACourt && matchData.teamBCourt) {
+      setTeamACourt({ right: matchData.teamACourt.right, left: matchData.teamACourt.left });
+      setTeamBCourt({ right: matchData.teamBCourt.right, left: matchData.teamBCourt.left });
+      const totalPoints = getCurrentSetData(matchData).points.length;
+      const isEven = totalPoints % 2 === 0;
+      
+      if (matchData.servingTeam === "Team A") {
+        setServingPlayer(isEven ? matchData.teamACourt.right : matchData.teamACourt.left);
+      } else {
+        setServingPlayer(isEven ? matchData.teamBCourt.right : matchData.teamBCourt.left);
+      }
+    } else if (matchData.servingTeam) {
+      setServingPlayer(matchData.servingTeam === "Team A" ? matchData.playerA : matchData.playerB);
     }
   };
 
@@ -140,16 +163,26 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
 
     if (winsA >= requiredWins || winsB >= requiredWins) {
       setMatchWinner(winsA > winsB 
-        ? (match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`) 
+        ? (match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`)
         : (match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`));
       updateMatchStatus("completed", updatedCompletedSets);
     } else if (currentSet < maxSets) {
       setCurrentSet(currentSet + 1);
+      const nextServingTeam = setWinner === (match.matchType.toLowerCase() === "singles" ? match.playerA : "Team A") ? "Team A" : "Team B";
+      setServingTeam(nextServingTeam);
+      const isDoublesOrMixed = match.matchType.toLowerCase() === "doubles" || match.matchType.toLowerCase() === "mixed";
+      if (isDoublesOrMixed && match.teamACourt && match.teamBCourt) {
+        setTeamACourt({ right: match.teamACourt.right, left: match.teamACourt.left });
+        setTeamBCourt({ right: match.teamBCourt.right, left: match.teamBCourt.left });
+        setServingPlayer(nextServingTeam === "Team A" ? match.teamACourt.right : match.teamBCourt.right);
+      } else {
+        setServingPlayer(nextServingTeam === "Team A" ? match.playerA : match.playerB);
+      }
       showNotification(`Set ${currentSet} won by ${setWinner}. Starting Set ${currentSet + 1}.`);
       updateMatchStatus("ongoing", updatedCompletedSets);
     } else {
       setMatchWinner(winsA > winsB 
-        ? (match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`) 
+        ? (match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`)
         : (match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`));
       updateMatchStatus("completed", updatedCompletedSets);
     }
@@ -157,7 +190,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
 
   const updateMatchStatus = async (status, updatedCompletedSets) => {
     try {
-      const updatedMatch = { ...match, status, completedSets: updatedCompletedSets };
+      const updatedMatch = { ...match, status, completedSets: updatedCompletedSets, servingTeam };
       await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
       setMatch(updatedMatch);
       updateMatches(matches.map((m) => (m.id === matchId ? updatedMatch : m)));
@@ -183,25 +216,61 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
         setNumber: currentSet 
       };
       const updatedPoints = [...(match.points || []), newPoint];
+      const isDoublesOrMixed = match.matchType.toLowerCase() === "doubles" || match.matchType.toLowerCase() === "mixed";
+      let newServingTeam = servingTeam;
+      let newServingPlayer = servingPlayer;
+
+      const { scoreA: newScoreA, scoreB: newScoreB } = getCurrentSetData({ ...match, points: updatedPoints });
+      const totalPoints = newScoreA + newScoreB;
+      const isEven = totalPoints % 2 === 0;
+
+      if (isDoublesOrMixed && match.teamACourt && match.teamBCourt) {
+        if (player === "A" && servingTeam === "Team B" || player === "B" && servingTeam === "Team A") {
+          // Serve switches when scoring team wasn't serving
+          newServingTeam = player === "A" ? "Team A" : "Team B";
+          if (newServingTeam === "Team A") {
+            newServingPlayer = isEven ? teamACourt.right : teamACourt.left;
+          } else {
+            newServingPlayer = isEven ? teamBCourt.right : teamBCourt.left;
+          }
+        } else {
+          // Scoring team was serving, they keep serve but switch sides
+          if (servingTeam === "Team A") {
+            const temp = teamACourt.right;
+            setTeamACourt({ right: teamACourt.left, left: temp });
+            newServingPlayer = servingPlayer;
+          } else {
+            const temp = teamBCourt.right;
+            setTeamBCourt({ right: teamBCourt.left, left: temp });
+            newServingPlayer = servingPlayer;
+          }
+        }
+      } else {
+        newServingTeam = player === "A" ? "Team A" : "Team B";
+        newServingPlayer = newServingTeam === "Team A" ? match.playerA : match.playerB;
+      }
+
       const updatedMatch = { 
         ...match, 
         points: updatedPoints,
-        status: match.status === "pending" ? "ongoing" : match.status
+        status: match.status === "pending" ? "ongoing" : match.status,
+        servingTeam: newServingTeam
       };
       
       await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
       setMatch(updatedMatch);
+      setServingTeam(newServingTeam);
+      setServingPlayer(newServingPlayer);
       updateMatches(matches.map((m) => (m.id === matchId ? updatedMatch : m)));
       
-      const { scoreA, scoreB } = getCurrentSetData(updatedMatch);
       const entityA = match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`;
       const entityB = match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`;
       if (player === "A") {
-        showNotification(`${entityA} scores! ${scoreA} - ${scoreB}`, "A");
+        showNotification(`${entityA} scores! ${newScoreA} - ${newScoreB} (${newServingPlayer} serving)`, "A");
       } else {
-        showNotification(`${entityB} scores! ${scoreA} - ${scoreB}`, "B");
+        showNotification(`${entityB} scores! ${newScoreA} - ${newScoreB} (${newServingPlayer} serving)`, "B");
       }
-      checkSetStatus(scoreA, scoreB);
+      checkSetStatus(newScoreA, newScoreB);
     } catch (err) {
       console.error("Failed to add point:", err);
       showNotification("Failed to update score!");
@@ -216,12 +285,43 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
 
     try {
       const updatedPoints = (match.points || []).filter((p) => p.id !== pointId);
-      const updatedMatch = { ...match, points: updatedPoints };
+      const lastPoint = updatedPoints[updatedPoints.length - 1];
+      const isDoublesOrMixed = match.matchType.toLowerCase() === "doubles" || match.matchType.toLowerCase() === "mixed";
+      let newServingTeam = lastPoint ? (lastPoint.scorer === "A" ? "Team A" : "Team B") : match.servingTeam;
+      let newServingPlayer;
+
+      const { scoreA, scoreB } = getCurrentSetData({ ...match, points: updatedPoints });
+      const totalPoints = scoreA + scoreB;
+      const isEven = totalPoints % 2 === 0;
+
+      if (isDoublesOrMixed && match.teamACourt && match.teamBCourt) {
+        if (lastPoint) {
+          if (lastPoint.scorer === "A" && servingTeam === "Team A" || lastPoint.scorer === "B" && servingTeam === "Team B") {
+            newServingPlayer = servingPlayer;
+          } else {
+            if (newServingTeam === "Team A") {
+              newServingPlayer = isEven ? teamACourt.right : teamACourt.left;
+            } else {
+              newServingPlayer = isEven ? teamBCourt.right : teamBCourt.left;
+            }
+          }
+        } else {
+          newServingTeam = match.servingTeam;
+          newServingPlayer = newServingTeam === "Team A" ? match.teamACourt.right : match.teamBCourt.right;
+          setTeamACourt({ right: match.teamACourt.right, left: match.teamACourt.left });
+          setTeamBCourt({ right: match.teamBCourt.right, left: match.teamBCourt.left });
+        }
+      } else {
+        newServingPlayer = newServingTeam === "Team A" ? match.playerA : match.playerB;
+      }
+
+      const updatedMatch = { ...match, points: updatedPoints, servingTeam: newServingTeam };
       await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
       setMatch(updatedMatch);
+      setServingTeam(newServingTeam);
+      setServingPlayer(newServingPlayer);
       updateMatches(matches.map((m) => (m.id === matchId ? updatedMatch : m)));
-      const { scoreA, scoreB } = getCurrentSetData(updatedMatch);
-      showNotification(`Point deleted. Score: ${scoreA} - ${scoreB}`);
+      showNotification(`Point deleted. Score: ${scoreA} - ${scoreB} (${newServingPlayer} serving)`);
     } catch (err) {
       console.error("Failed to delete point:", err);
       showNotification("Failed to delete point!");
@@ -234,12 +334,17 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
         ...match, 
         points: [], 
         completedSets: [], 
-        status: "pending" 
+        status: "pending",
+        servingTeam: match.servingTeam
       };
       await axios.put(`http://localhost:5000/api/matches/${matchId}`, resetMatch);
       setMatch(resetMatch);
       setCurrentSet(1);
       setMatchWinner(null);
+      setServingTeam(resetMatch.servingTeam);
+      setTeamACourt({ right: match.teamACourt?.right || "", left: match.teamACourt?.left || "" });
+      setTeamBCourt({ right: match.teamBCourt?.right || "", left: match.teamBCourt?.left || "" });
+      setServingPlayer(resetMatch.servingTeam === "Team A" ? resetMatch.teamACourt?.right : resetMatch.teamBCourt?.right);
       updateMatches(matches.map((m) => (m.id === matchId ? resetMatch : m)));
       showNotification("Match reset successfully!");
     } catch (err) {
@@ -275,7 +380,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
           <span className="player-highlight">{match.playerA}</span> vs <span className="player-highlight">{match.playerB}</span>
         </>
       );
-    } else if (match.matchType.toLowerCase() === "mixed") {
+    } else if (match.matchType.toLowerCase() === "mixed" || match.matchType.toLowerCase() === "doubles") {
       return (
         <>
           <span className="player-highlight">{match.teamA.player1} / {match.teamA.player2}</span> vs{" "}
@@ -288,6 +393,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
 
   const entityA = match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`;
   const entityB = match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`;
+  const isDoublesOrMixed = match.matchType.toLowerCase() === "doubles" || match.matchType.toLowerCase() === "mixed";
 
   return (
     <div className="scorekeeper-container">
@@ -316,7 +422,27 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
 
       <div className="score-grid">
         <div className="player-section">
-          <h3 className="player-name">{match.matchType.toLowerCase() === "singles" ? match.playerA : entityA}</h3>
+          {isDoublesOrMixed && match.teamACourt && match.teamBCourt ? (
+            <>
+              <div className="doubles-player">
+                <p className="court-position">Right: {teamACourt.right || "N/A"}</p>
+                {servingPlayer === teamACourt.right && <p className="serve-status">👉 Serving</p>}
+              </div>
+              <div className="doubles-player">
+                <p className="court-position">Left: {teamACourt.left || "N/A"}</p>
+                {servingPlayer === teamACourt.left && <p className="serve-status">👉 Serving</p>}
+              </div>
+            </>
+          ) : (
+            <>
+              {servingTeam && (
+                <p className="serve-status">
+                  {servingTeam === "Team A" ? "👉 Serving" : "Receiving"}
+                </p>
+              )}
+              <h3 className="player-name">{entityA}</h3>
+            </>
+          )}
           {notificationA && <div className="green-notification">{notificationA}</div>}
           <div className="score-box">{scoreA}</div>
           {scoreA >= 20 && scoreA > scoreB && scoreA - scoreB === 1 && (
@@ -337,7 +463,27 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
           <span className="vs-text">VS</span>
         </div>
         <div className="player-section">
-          <h3 className="player-name">{match.matchType.toLowerCase() === "singles" ? match.playerB : entityB}</h3>
+          {isDoublesOrMixed && match.teamACourt && match.teamBCourt ? (
+            <>
+              <div className="doubles-player">
+                <p className="court-position">Right: {teamBCourt.right || "N/A"}</p>
+                {servingPlayer === teamBCourt.right && <p className="serve-status">👉 Serving</p>}
+              </div>
+              <div className="doubles-player">
+                <p className="court-position">Left: {teamBCourt.left || "N/A"}</p>
+                {servingPlayer === teamBCourt.left && <p className="serve-status">👉 Serving</p>}
+              </div>
+            </>
+          ) : (
+            <>
+              {servingTeam && (
+                <p className="serve-status">
+                  {servingTeam === "Team B" ? "👉 Serving" : "Receiving"}
+                </p>
+              )}
+              <h3 className="player-name">{entityB}</h3>
+            </>
+          )}
           {notificationB && <div className="green-notification">{notificationB}</div>}
           <div className="score-box">{scoreB}</div>
           {scoreB >= 20 && scoreB > scoreA && scoreB - scoreA === 1 && (

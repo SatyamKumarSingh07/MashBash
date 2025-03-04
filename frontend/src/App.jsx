@@ -6,6 +6,8 @@ import ConductMatchPage from "./components/ConductMatchPage";
 import FixturesPage from "./components/FixturesPage";
 import ScorekeeperPage from "./components/ScorekeeperPage";
 import MatchSummaryPage from "./components/MatchSummaryPage";
+import LeaderboardPage from "./components/LeaderboardPage";
+import ScoreViewerPage from "./components/ScoreViewerPage"; // Add this import
 import axios from "axios";
 import "./App.css";
 
@@ -48,6 +50,8 @@ function App() {
             element={<ScorekeeperPage matches={matches} updateMatches={updateMatches} />}
           />
           <Route path="/summary/:matchId" element={<MatchSummaryPage matches={matches} />} />
+          <Route path="/standings" element={<LeaderboardPage matches={matches} />} />
+          <Route path="/match/:matchId/scores" element={<ScoreViewerPage />} /> {/* New route */}
         </Routes>
       </div>
     </BrowserRouter>
