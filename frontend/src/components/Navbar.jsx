@@ -8,18 +8,15 @@ const Navbar = ({ matches = [] }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Toggle mobile menu
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // Handle navigation and close mobile menu
   const handleNavigation = (path) => {
     navigate(path);
     setIsMobileMenuOpen(false);
   };
 
-  // Render match participants based on type
   const renderMatchParticipants = (match) => {
     const matchType = match.matchType?.toLowerCase() || "";
     if (matchType === "singles") {
@@ -33,7 +30,6 @@ const Navbar = ({ matches = [] }) => {
 
   return (
     <nav className="navbar">
-      {/* Logo & Branding */}
       <div className="navbar-brand">
         <div 
           className="brand-container"
@@ -49,7 +45,6 @@ const Navbar = ({ matches = [] }) => {
         </div>
       </div>
 
-      {/* Hamburger menu button for mobile */}
       <button 
         className="hamburger-btn" 
         onClick={toggleMobileMenu}
@@ -57,7 +52,6 @@ const Navbar = ({ matches = [] }) => {
         ☰
       </button>
 
-      {/* Navbar links */}
       <div className={`navbar-links ${isMobileMenuOpen ? "active" : ""}`}>
         <button className="nav-btn" onClick={() => handleNavigation("/")}>
           Conduct Match
@@ -69,7 +63,6 @@ const Navbar = ({ matches = [] }) => {
           Leaderboard
         </button>
 
-        {/* Scorekeeper Dropdown */}
         <div className="dropdown">
           <button className="nav-btn">Scorekeeper</button>
           <div className="dropdown-content">
@@ -88,7 +81,6 @@ const Navbar = ({ matches = [] }) => {
           </div>
         </div>
 
-        {/* Summary Dropdown */}
         <div className="dropdown">
           <button className="nav-btn">Summary</button>
           <div className="dropdown-content">

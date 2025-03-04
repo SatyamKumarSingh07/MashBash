@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import { fetchMatch } from "../utils/api"; // Import the utility function
 
 const ScoreViewerPage = () => {
   const { matchId } = useParams();
@@ -12,7 +12,7 @@ const ScoreViewerPage = () => {
     const fetchMatchData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/matches/${matchId}`);
+        const response = await fetchMatch(matchId); // Use utility function
         if (response.data) {
           setMatch(response.data);
         } else {

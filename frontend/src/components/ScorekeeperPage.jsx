@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { fetchMatch, updateMatch } from "../utils/api"; // Use the updated utility with hardcoded URL
 
 const ScorekeeperPage = ({ matches, updateMatches }) => {
   const { matchId } = useParams();
@@ -18,10 +18,10 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchMatch = async () => {
+    const fetchMatchData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/matches/${matchId}`);
+        const response = await fetchMatch(matchId);
         if (response.data) {
           setMatch(response.data);
           initializeMatchState(response.data);
@@ -48,7 +48,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
       initializeCourtAndServing(foundMatch);
       setLoading(false);
     } else {
-      fetchMatch();
+      fetchMatchData();
     }
   }, [matchId, matches, navigate]);
 
@@ -191,7 +191,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
   const updateMatchStatus = async (status, updatedCompletedSets) => {
     try {
       const updatedMatch = { ...match, status, completedSets: updatedCompletedSets, servingTeam };
-      await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
+      await updateMatch(matchId, updatedMatch);
       setMatch(updatedMatch);
       updateMatches(matches.map((m) => (m.id === matchId ? updatedMatch : m)));
       showNotification(`Match status updated to ${status}`);
@@ -226,7 +226,6 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
 
       if (isDoublesOrMixed && match.teamACourt && match.teamBCourt) {
         if (player === "A" && servingTeam === "Team B" || player === "B" && servingTeam === "Team A") {
-          // Serve switches when scoring team wasn't serving
           newServingTeam = player === "A" ? "Team A" : "Team B";
           if (newServingTeam === "Team A") {
             newServingPlayer = isEven ? teamACourt.right : teamACourt.left;
@@ -234,7 +233,6 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
             newServingPlayer = isEven ? teamBCourt.right : teamBCourt.left;
           }
         } else {
-          // Scoring team was serving, they keep serve but switch sides
           if (servingTeam === "Team A") {
             const temp = teamACourt.right;
             setTeamACourt({ right: teamACourt.left, left: temp });
@@ -257,7 +255,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
         servingTeam: newServingTeam
       };
       
-      await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
+      await updateMatch(matchId, updatedMatch);
       setMatch(updatedMatch);
       setServingTeam(newServingTeam);
       setServingPlayer(newServingPlayer);
@@ -316,7 +314,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
       }
 
       const updatedMatch = { ...match, points: updatedPoints, servingTeam: newServingTeam };
-      await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
+      await updateMatch(matchId, updatedMatch);
       setMatch(updatedMatch);
       setServingTeam(newServingTeam);
       setServingPlayer(newServingPlayer);
@@ -337,7 +335,7 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
         status: "pending",
         servingTeam: match.servingTeam
       };
-      await axios.put(`http://localhost:5000/api/matches/${matchId}`, resetMatch);
+      await updateMatch(matchId, resetMatch);
       setMatch(resetMatch);
       setCurrentSet(1);
       setMatchWinner(null);

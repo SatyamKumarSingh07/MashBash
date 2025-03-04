@@ -1,12 +1,10 @@
-// src/components/LeaderboardPage.jsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { FaTrophy } from "react-icons/fa";
 
 const LeaderboardPage = ({ matches }) => {
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedPlayer, setExpandedPlayer] = useState(null); // Track which player is expanded
+  const [expandedPlayer, setExpandedPlayer] = useState(null);
 
   useEffect(() => {
     calculateLeaderboard();
@@ -22,7 +20,6 @@ const LeaderboardPage = ({ matches }) => {
       const entityA = isSingles ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`;
       const entityB = isSingles ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`;
 
-      // Initialize stats if not exists
       if (!playerStats[entityA]) {
         playerStats[entityA] = { wins: 0, losses: 0, games: 0, lastWinDate: null, matchType: match.matchType, wonMatches: [] };
       }
@@ -30,7 +27,6 @@ const LeaderboardPage = ({ matches }) => {
         playerStats[entityB] = { wins: 0, losses: 0, games: 0, lastWinDate: null, matchType: match.matchType, wonMatches: [] };
       }
 
-      // Calculate wins and store match details
       const winsA = match.completedSets.reduce(
         (count, set) => count + (set.winner === (isSingles ? match.playerA : "Team A") ? 1 : 0),
         0
@@ -52,7 +48,6 @@ const LeaderboardPage = ({ matches }) => {
       playerStats[loser].games += 1;
     });
 
-    // Convert to array and calculate percentages
     const leaderboard = Object.entries(playerStats).map(([name, stats]) => ({
       name,
       wins: stats.wins,
@@ -64,7 +59,6 @@ const LeaderboardPage = ({ matches }) => {
       wonMatches: stats.wonMatches
     }));
 
-    // Sort by wins descending
     leaderboard.sort((a, b) => b.wins - a.wins);
     setLeaderboardData(leaderboard);
     setLoading(false);

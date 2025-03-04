@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { fetchMatches, deleteMatch, updateMatch, exportMatches } from "../utils/api"; // Use the updated utility
 
 const FixturesPage = ({ matches, updateMatches }) => {
   const navigate = useNavigate();
@@ -8,17 +8,17 @@ const FixturesPage = ({ matches, updateMatches }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
-  const [tossSelection, setTossSelection] = useState(null); // Match ID for toss selection
-  const [tossWinner, setTossWinner] = useState(""); // Selected toss winner
-  const [courtSelection, setCourtSelection] = useState(null); // Match ID for court selection
-  const [teamACourt, setTeamACourt] = useState({ right: "", left: "" }); // Team A court positions
-  const [teamBCourt, setTeamBCourt] = useState({ right: "", left: "" }); // Team B court positions
+  const [tossSelection, setTossSelection] = useState(null);
+  const [tossWinner, setTossWinner] = useState("");
+  const [courtSelection, setCourtSelection] = useState(null);
+  const [teamACourt, setTeamACourt] = useState({ right: "", left: "" });
+  const [teamBCourt, setTeamBCourt] = useState({ right: "", left: "" });
 
   useEffect(() => {
-    const fetchMatches = async () => {
+    const fetchMatchesData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5000/api/matches");
+        const response = await fetchMatches();
         if (response.data && Array.isArray(response.data)) {
           console.log("Initial fetch - Fetched matches:", response.data);
           updateMatches(response.data);
@@ -33,18 +33,18 @@ const FixturesPage = ({ matches, updateMatches }) => {
     };
 
     if (!isInitialFetchDone && (!matches || matches.length === 0)) {
-      fetchMatches();
+      fetchMatchesData();
     }
   }, [updateMatches, isInitialFetchDone, matches]);
 
-  const deleteMatch = useCallback(
+  const deleteMatchAction = useCallback(
     async (matchId) => {
       if (!window.confirm(`Are you sure you want to delete match ${matchId}?`)) return;
 
       try {
         setActionLoading(true);
         setError(null);
-        const response = await axios.delete(`http://localhost:5000/api/matches/${matchId}`);
+        await deleteMatch(matchId);
         const updatedMatches = matches.filter((m) => m.id !== matchId);
         updateMatches(updatedMatches);
       } catch (err) {
@@ -68,7 +68,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
   );
 
   const handleExport = useCallback(() => {
-    window.location.href = "http://localhost:5000/api/export";
+    exportMatches();
   }, []);
 
   const viewMatchSummary = useCallback(
@@ -93,9 +93,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
       (count, set) => count + (set.winner === (isSingles ? match.playerB : "Team B") ? 1 : 0),
       0
     );
-    const winner = winsA > winsB 
-      ? (isSingles ? `Player - ${entityA}` : `Team A - ${entityA}`)
-      : (isSingles ? `Player - ${entityB}` : `Team B - ${entityB}`);
+    const winner = winsA > winsB ? (isSingles ? `Player - ${entityA}` : `Team A - ${entityA}`) : winsB > winsA ? (isSingles ? `Player - ${entityB}` : `Team B - ${entityB}`) : "Tie";
     const setPoints = match.completedSets.map(set => `${set.scoreA}-${set.scoreB}`).join(", ");
 
     return { winner, setPoints };
@@ -144,7 +142,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
     try {
       const matchToUpdate = matches.find(m => m.id === matchId);
       const updatedMatch = { ...matchToUpdate, tossWinner };
-      await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
+      await updateMatch(matchId, updatedMatch);
       updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
       setTossSelection(null);
     } catch (err) {
@@ -177,7 +175,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
         teamACourt: { right: teamACourt.right, left: teamACourt.left },
         teamBCourt: { right: teamBCourt.right, left: teamBCourt.left }
       };
-      await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
+      await updateMatch(matchId, updatedMatch);
       updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
       setCourtSelection(null);
     } catch (err) {
@@ -199,7 +197,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
       }
 
       const updatedMatch = { ...matchToUpdate, servingTeam };
-      await axios.put(`http://localhost:5000/api/matches/${matchId}`, updatedMatch);
+      await updateMatch(matchId, updatedMatch);
       updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
       setTossSelection(null);
     } catch (err) {
@@ -252,7 +250,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
                   </button>
                   <button
                     className="delete-btn"
-                    onClick={() => deleteMatch(match.id)}
+                    onClick={() => deleteMatchAction(match.id)}
                     disabled={actionLoading}
                   >
                     Delete

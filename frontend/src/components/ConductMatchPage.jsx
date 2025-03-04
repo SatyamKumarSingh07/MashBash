@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/BadBash2.jpg";
+import { createMatch } from "../utils/api"; // Use the updated utility
 
-const ConductMatchPage = ({ addMatch }) => { // Changed prop to addMatch
+const ConductMatchPage = ({ addMatch }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     matchType: "singles",
@@ -51,8 +51,8 @@ const ConductMatchPage = ({ addMatch }) => { // Changed prop to addMatch
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/api/matches", matchData);
-      addMatch(response.data); // Changed to addMatch
+      const response = await createMatch(matchData);
+      addMatch(response.data);
       navigate("/fixtures");
     } catch (err) {
       setError("Failed to create match: " + (err.response?.data?.error || err.message));

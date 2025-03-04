@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import * as XLSX from "xlsx"; // Import SheetJS
+import * as XLSX from "xlsx";
+import { fetchMatch } from "../utils/api"; // Use the updated utility
 
 const MatchSummaryPage = ({ matches }) => {
   const { matchId } = useParams();
@@ -16,9 +16,9 @@ const MatchSummaryPage = ({ matches }) => {
       setMatch(foundMatch);
       setLoading(false);
     } else {
-      const fetchMatch = async () => {
+      const fetchMatchData = async () => {
         try {
-          const response = await axios.get(`http://localhost:5000/api/matches/${matchId}`);
+          const response = await fetchMatch(matchId);
           setMatch(response.data);
         } catch (err) {
           console.error("Failed to fetch match:", err);
@@ -27,7 +27,7 @@ const MatchSummaryPage = ({ matches }) => {
           setLoading(false);
         }
       };
-      fetchMatch();
+      fetchMatchData();
     }
   }, [matchId, matches, navigate]);
 
@@ -103,7 +103,6 @@ const MatchSummaryPage = ({ matches }) => {
     }
   };
 
-  // Function to export match summary to Excel
   const exportToExcel = () => {
     const data = [
       ["Match Summary"],
@@ -139,7 +138,6 @@ const MatchSummaryPage = ({ matches }) => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "MatchSummary");
     
-    // Generate and download the Excel file
     XLSX.writeFile(workbook, `Match_Summary_${matchId}.xlsx`);
   };
 
