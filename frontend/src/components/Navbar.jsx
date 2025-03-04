@@ -1,30 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/BadBash2.jpg"; // Adjust the path to your logo image
 
-const Navbar = ({ matches }) => {
+// Fixing the logo import for Vite
+const logo = new URL("../assets/BadBash2.jpg", import.meta.url).href;
+
+const Navbar = ({ matches = [] }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Helper function to render match participants based on match type
-  const renderMatchParticipants = (match) => {
-    const matchType = match.matchType ? match.matchType.toLowerCase() : "";
-
-    if (matchType === "singles") {
-      const playerA = match.playerA || "TBD";
-      const playerB = match.playerB || "TBD";
-      return `${playerA} vs ${playerB}`;
-    } else if (matchType === "doubles" || matchType === "mixed") {
-      const teamA1 = match.teamA?.player1 || "TBD";
-      const teamA2 = match.teamA?.player2 || "TBD";
-      const teamB1 = match.teamB?.player1 || "TBD";
-      const teamB2 = match.teamB?.player2 || "TBD";
-      return `${teamA1}/${teamA2} vs ${teamB1}/${teamB2}`;
-    }
-    return "Match Details Unavailable";
-  };
-
-  // Toggle mobile menu visibility
+  // Toggle mobile menu
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
@@ -35,8 +19,21 @@ const Navbar = ({ matches }) => {
     setIsMobileMenuOpen(false);
   };
 
+  // Render match participants based on type
+  const renderMatchParticipants = (match) => {
+    const matchType = match.matchType?.toLowerCase() || "";
+    if (matchType === "singles") {
+      return `${match.playerA || "TBD"} vs ${match.playerB || "TBD"}`;
+    } else if (matchType === "doubles" || matchType === "mixed") {
+      return `${match.teamA?.player1 || "TBD"}/${match.teamA?.player2 || "TBD"} 
+              vs ${match.teamB?.player1 || "TBD"}/${match.teamB?.player2 || "TBD"}`;
+    }
+    return "Match Details Unavailable";
+  };
+
   return (
     <nav className="navbar">
+      {/* Logo & Branding */}
       <div className="navbar-brand">
         <div 
           className="brand-container"
@@ -46,7 +43,7 @@ const Navbar = ({ matches }) => {
           <img 
             src={logo} 
             alt="BadBash Logo" 
-            style={{ width: "30px", height: "30px", marginRight: "10px" }} 
+            style={{ width: "40px", height: "40px", marginRight: "10px" }} 
           />
           <h1 className="mashbash-heading">BADBASH</h1>
         </div>
@@ -71,6 +68,8 @@ const Navbar = ({ matches }) => {
         <button className="nav-btn" onClick={() => handleNavigation("/standings")}>
           Leaderboard
         </button>
+
+        {/* Scorekeeper Dropdown */}
         <div className="dropdown">
           <button className="nav-btn">Scorekeeper</button>
           <div className="dropdown-content">
@@ -88,6 +87,8 @@ const Navbar = ({ matches }) => {
             )}
           </div>
         </div>
+
+        {/* Summary Dropdown */}
         <div className="dropdown">
           <button className="nav-btn">Summary</button>
           <div className="dropdown-content">
