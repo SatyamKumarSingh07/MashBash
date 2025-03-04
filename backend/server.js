@@ -6,11 +6,16 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000; // Use Render's PORT or fallback to 5000 locally
 const DATA_FILE = path.resolve(__dirname, "data.json");
 
 app.use(cors());
 app.use(express.json());
+
+// Add a root route for basic status
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome to the MashBash API", status: "running" });
+});
 
 const initializeData = async () => {
   try {
@@ -65,7 +70,7 @@ initializeData().then(() => {
         id: matchId,
         points: [],
         completedSets: [],
-        matchType: req.body.matchType.toLowerCase() // Normalize matchType to lowercase
+        matchType: req.body.matchType.toLowerCase(), // Normalize matchType to lowercase
       };
       data.matches.push(newMatch);
       await jsonfile.writeFile(DATA_FILE, data, { spaces: 2 });
@@ -93,7 +98,7 @@ initializeData().then(() => {
         ...data.matches[matchIndex],
         ...req.body,
         id: matchId,
-        matchType: req.body.matchType?.toLowerCase() || data.matches[matchIndex].matchType // Normalize matchType to lowercase
+        matchType: req.body.matchType?.toLowerCase() || data.matches[matchIndex].matchType, // Normalize matchType to lowercase
       };
 
       data.matches[matchIndex] = updatedMatch;
@@ -168,7 +173,7 @@ initializeData().then(() => {
             0
           );
           winner = winsA > winsB ? (match.matchType.toLowerCase() === "singles" ? match.playerA : "Team A") : winsB > winsA ? (match.matchType.toLowerCase() === "singles" ? match.playerB : "Team B") : "Tie";
-          setPoints = match.completedSets.map(set => `${set.scoreA}-${set.scoreB}`).join(", ");
+          setPoints = match.completedSets.map((set) => `${set.scoreA}-${set.scoreB}`).join(", ");
         }
 
         worksheet.addRow({
@@ -208,7 +213,8 @@ initializeData().then(() => {
     }
   });
 
-  app.listen(PORT, () => {
+  // Listen on 0.0.0.0 for Render compatibility
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Using data file: ${DATA_FILE}`);
   });
