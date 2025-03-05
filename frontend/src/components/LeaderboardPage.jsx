@@ -43,7 +43,12 @@ const LeaderboardPage = ({ matches }) => {
       playerStats[winner].wins += 1;
       playerStats[winner].games += 1;
       playerStats[winner].lastWinDate = match.date;
-      playerStats[winner].wonMatches.push({ opponent: loser, setPoints, date: match.date });
+      playerStats[winner].wonMatches.push({
+        opponent: loser,
+        setPoints,
+        venue: match.venue || "Unknown Venue", // Assuming venue is part of match data; adjust if needed
+        date: match.date
+      });
       playerStats[loser].losses += 1;
       playerStats[loser].games += 1;
     });
@@ -83,51 +88,57 @@ const LeaderboardPage = ({ matches }) => {
       {leaderboardData.length === 0 ? (
         <p className="no-data">No completed matches yet</p>
       ) : (
-        <div className="leaderboard-table">
-          <div className="table-header">
-            <div className="header-item">Rank</div>
-            <div className="header-item">Player/Team</div>
-            <div className="header-item">Wins</div>
-            <div className="header-item">Games</div>
-            <div className="header-item">Win %</div>
-            <div className="header-item">Loss %</div>
-            <div className="header-item">Last Win</div>
-            <div className="header-item">Match Type</div>
+        <div className="leaderboard-wrapper">
+          <div className="leaderboard-table">
+            <div className="table-header">
+              <div className="header-item">Rank</div>
+              <div className="header-item">Player/Team</div>
+              <div className="header-item">Wins</div>
+              <div className="header-item">Games</div>
+              <div className="header-item">Win %</div>
+              <div className="header-item">Loss %</div>
+              <div className="header-item">Last Win</div>
+              <div className="header-item">Match Type</div>
+            </div>
+            {leaderboardData.map((player, index) => (
+              <React.Fragment key={player.name}>
+                <div
+                  className={`table-row ${index < 3 ? `top-${index + 1}` : ''}`}
+                  onClick={() => togglePlayerDetails(player.name)}
+                >
+                  <div className="row-item">
+                    {getTrophyIcon(index)} {index + 1}
+                  </div>
+                  <div className="row-item clickable">{player.name}</div>
+                  <div className="row-item">{player.wins}</div>
+                  <div className="row-item">{player.games}</div>
+                  <div className="row-item">{player.winPercentage}%</div>
+                  <div className="row-item">{player.lossPercentage}%</div>
+                  <div className="row-item">{player.lastWinDate}</div>
+                  <div className="row-item">{player.matchType}</div>
+                </div>
+                {expandedPlayer === player.name && (
+                  <div className="match-details">
+                    <h3>Won Matches</h3>
+                    {player.wonMatches.length === 0 ? (
+                      <p>No won matches recorded</p>
+                    ) : (
+                      <div className="match-list">
+                        {player.wonMatches.map((match, idx) => (
+                          <div key={idx} className="match-item">
+                            <p><strong>Opponent:</strong> {match.opponent}</p>
+                            <p><strong>Set Points:</strong> {match.setPoints}</p>
+                            <p><strong>Venue:</strong> {match.venue}</p>
+                            <p><strong>Date:</strong> {new Date(match.date).toLocaleDateString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
           </div>
-          {leaderboardData.map((player, index) => (
-            <React.Fragment key={player.name}>
-              <div className={`table-row ${index < 3 ? `top-${index + 1}` : ''}`} onClick={() => togglePlayerDetails(player.name)}>
-                <div className="row-item">
-                  {getTrophyIcon(index)} {index + 1}
-                </div>
-                <div className="row-item clickable">{player.name}</div>
-                <div className="row-item">{player.wins}</div>
-                <div className="row-item">{player.games}</div>
-                <div className="row-item">{player.winPercentage}%</div>
-                <div className="row-item">{player.lossPercentage}%</div>
-                <div className="row-item">{player.lastWinDate}</div>
-                <div className="row-item">{player.matchType}</div>
-              </div>
-              {expandedPlayer === player.name && (
-                <div className="match-details">
-                  <h3>Won Matches</h3>
-                  {player.wonMatches.length === 0 ? (
-                    <p>No won matches recorded</p>
-                  ) : (
-                    <div className="match-list">
-                      {player.wonMatches.map((match, idx) => (
-                        <div key={idx} className="match-item">
-                          <p><strong>Opponent:</strong> {match.opponent}</p>
-                          <p><strong>Set Points:</strong> {match.setPoints}</p>
-                          <p><strong>Date:</strong> {new Date(match.date).toLocaleDateString()}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </React.Fragment>
-          ))}
         </div>
       )}
     </div>
