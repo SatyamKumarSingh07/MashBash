@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchMatches, deleteMatch, updateMatch, exportMatches } from "../utils/api"; // Use the updated utility
+import { fetchMatches, deleteMatch, updateMatch, exportMatches } from "../utils/api";
 
 const FixturesPage = ({ matches, updateMatches }) => {
   const navigate = useNavigate();
@@ -24,8 +24,8 @@ const FixturesPage = ({ matches, updateMatches }) => {
           updateMatches(response.data);
         }
       } catch (err) {
-        console.error("Failed to fetch matches:", err);
-        setError("Failed to load matches. Please try again.");
+        console.error("Failed to fetch matches:", err.response?.data || err.message);
+        setError("Failed to load matches: " + (err.response?.data?.message || "Please try again."));
       } finally {
         setLoading(false);
         setIsInitialFetchDone(true);
@@ -48,12 +48,12 @@ const FixturesPage = ({ matches, updateMatches }) => {
         const updatedMatches = matches.filter((m) => m.id !== matchId);
         updateMatches(updatedMatches);
       } catch (err) {
-        console.error("Failed to delete match:", err);
+        console.error("Failed to delete match:", err.response?.data || err.message);
         if (err.response?.status === 404) {
           const updatedMatches = matches.filter((m) => m.id !== matchId);
           updateMatches(updatedMatches);
         } else {
-          setError("Failed to delete match: " + (err.response?.data?.error || err.message));
+          setError("Failed to delete match: " + (err.response?.data?.message || err.message));
         }
       } finally {
         setActionLoading(false);
@@ -67,8 +67,13 @@ const FixturesPage = ({ matches, updateMatches }) => {
     [navigate]
   );
 
-  const handleExport = useCallback(() => {
-    exportMatches();
+  const handleExport = useCallback(async () => {
+    try {
+      await exportMatches();
+    } catch (err) {
+      console.error("Failed to export matches:", err.response?.data || err.message);
+      setError("Failed to export matches: " + (err.response?.data?.message || err.message));
+    }
   }, []);
 
   const viewMatchSummary = useCallback(
@@ -109,10 +114,22 @@ const FixturesPage = ({ matches, updateMatches }) => {
 
   const renderPlayers = (match) => {
     const matchType = match.matchType.toLowerCase();
+    const publicLink = `https://badbash.netlify.app/view-score/${match.id}`;
     if (matchType === "singles") {
       return (
         <>
           <span className="player-name">{match.playerA}</span> vs <span className="player-name">{match.playerB}</span>
+          <br />
+          <button
+            className="nav-btn"
+            onClick={() => {
+              navigator.clipboard.writeText(publicLink);
+              alert(`Copied to clipboard: ${publicLink}`);
+            }}
+            disabled={actionLoading}
+          >
+            Copy Public Link
+          </button>
         </>
       );
     } else if (matchType === "doubles" || matchType === "mixed") {
@@ -120,6 +137,17 @@ const FixturesPage = ({ matches, updateMatches }) => {
         <>
           <span className="player-name">{match.teamA.player1}/{match.teamA.player2}</span> vs{" "}
           <span className="player-name">{match.teamB.player1}/{match.teamB.player2}</span>
+          <br />
+          <button
+            className="nav-btn"
+            onClick={() => {
+              navigator.clipboard.writeText(publicLink);
+              alert(`Copied to clipboard: ${publicLink}`);
+            }}
+            disabled={actionLoading}
+          >
+            Copy Public Link
+          </button>
         </>
       );
     }
@@ -146,8 +174,8 @@ const FixturesPage = ({ matches, updateMatches }) => {
       updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
       setTossSelection(null);
     } catch (err) {
-      console.error("Failed to update toss winner:", err);
-      setError("Failed to update toss winner. Please try again.");
+      console.error("Failed to update toss winner:", err.response?.data || err.message);
+      setError("Failed to update toss winner: " + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(false);
     }
@@ -156,7 +184,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
   const initiateCourtSelection = (matchId) => {
     setCourtSelection(matchId);
     const match = matches.find(m => m.id === matchId);
-    setTeamACourt({ right: match.teamA.player1, left: match.teamA.player2 }); // Default initial values
+    setTeamACourt({ right: match.teamA.player1, left: match.teamA.player2 });
     setTeamBCourt({ right: match.teamB.player1, left: match.teamB.player2 });
   };
 
@@ -179,8 +207,8 @@ const FixturesPage = ({ matches, updateMatches }) => {
       updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
       setCourtSelection(null);
     } catch (err) {
-      console.error("Failed to update court positions:", err);
-      setError("Failed to update court positions. Please try again.");
+      console.error("Failed to update court positions:", err.response?.data || err.message);
+      setError("Failed to update court positions: " + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(false);
     }
@@ -201,8 +229,8 @@ const FixturesPage = ({ matches, updateMatches }) => {
       updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
       setTossSelection(null);
     } catch (err) {
-      console.error("Failed to set serve choice:", err);
-      setError("Failed to set serve choice. Please try again.");
+      console.error("Failed to set serve choice:", err.response?.data || err.message);
+      setError("Failed to set serve choice: " + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(false);
     }

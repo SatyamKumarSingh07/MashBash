@@ -1481,10 +1481,25 @@ button:hover {
 
 .conduct-match-page h2 {
     font-size: 2rem;
-    color: #3bc1fb;
+    color: #000000; /* Changed to black for visibility */
     margin-bottom: 20px;
     text-transform: uppercase;
     text-shadow: 10px 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Specific styling for form elements in Conduct Match Page */
+.conduct-match-page label {
+    color: #000000; /* Changed to black for visibility */
+}
+
+.conduct-match-page input,
+.conduct-match-page select {
+    color: #000000; /* Changed to black for visibility */
+}
+
+.conduct-match-page input::placeholder,
+.conduct-match-page select::placeholder {
+    color: #333333; /* Slightly lighter black for placeholder */
 }
 
 /* Score Viewer Page Styling */
@@ -1619,6 +1634,7 @@ button:hover {
         font-size: 1.2rem;
     }
 }
+
 .login-container {
     max-width: 400px;
     margin: 50px auto;

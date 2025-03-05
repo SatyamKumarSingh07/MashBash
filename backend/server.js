@@ -4,7 +4,7 @@ const jsonfile = require("jsonfile");
 const ExcelJS = require("exceljs");
 const path = require("path");
 const fs = require("fs");
-const jwt = require("jsonwebtoken"); // Add for token generation
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = process.env.PORT || 5000; // Use Render's PORT or fallback to 5000 locally
@@ -13,11 +13,11 @@ const DATA_FILE = path.resolve(__dirname, "data.json");
 // Configure CORS to allow requests from specific origins (local and Netlify)
 const corsOptions = {
   origin: [
-    'http://localhost:5173', // Allow local development (Vite default)
-    'https://badbash.netlify.app', // Your Netlify frontend URL
+    "http://localhost:5173", // Allow local development (Vite default)
+    "https://badbash.netlify.app", // Your Netlify frontend URL
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allow these HTTP methods
+  allowedHeaders: ["Content-Type", "Authorization"], // Allow these headers
   credentials: true, // Allow cookies if needed
   optionsSuccessStatus: 200, // Some browsers (e.g., Safari) require this for OPTIONS
 };
@@ -69,7 +69,7 @@ app.post("/api/login", (req, res) => {
 });
 
 // Handle OPTIONS preflight requests (CORS)
-app.options('/api/login', cors(corsOptions));
+app.options("/api/login", cors(corsOptions));
 
 // Protect /api/matches endpoints with authentication
 app.get("/api/matches", authenticateToken, async (req, res) => {
@@ -199,19 +199,42 @@ app.get("/api/export", authenticateToken, async (req, res) => {
     data.matches.forEach((match) => {
       let winner = "N/A";
       let setPoints = "N/A";
-      let entityA = match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`;
-      let entityB = match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`;
+      let entityA =
+        match.matchType.toLowerCase() === "singles"
+          ? match.playerA
+          : `${match.teamA.player1}/${match.teamA.player2}`;
+      let entityB =
+        match.matchType.toLowerCase() === "singles"
+          ? match.playerB
+          : `${match.teamB.player1}/${match.teamB.player2}`;
 
       if (match.status === "completed" && match.completedSets && match.completedSets.length > 0) {
         const winsA = match.completedSets.reduce(
-          (count, set) => count + (set.winner === (match.matchType.toLowerCase() === "singles" ? match.playerA : "Team A") ? 1 : 0),
+          (count, set) =>
+            count +
+            (set.winner === (match.matchType.toLowerCase() === "singles" ? match.playerA : "Team A")
+              ? 1
+              : 0),
           0
         );
         const winsB = match.completedSets.reduce(
-          (count, set) => count + (set.winner === (match.matchType.toLowerCase() === "singles" ? match.playerB : "Team B") ? 1 : 0),
+          (count, set) =>
+            count +
+            (set.winner === (match.matchType.toLowerCase() === "singles" ? match.playerB : "Team B")
+              ? 1
+              : 0),
           0
         );
-        winner = winsA > winsB ? (match.matchType.toLowerCase() === "singles" ? match.playerA : "Team A") : winsB > winsA ? (match.matchType.toLowerCase() === "singles" ? match.playerB : "Team B") : "Tie";
+        winner =
+          winsA > winsB
+            ? match.matchType.toLowerCase() === "singles"
+              ? match.playerA
+              : "Team A"
+            : winsB > winsA
+            ? match.matchType.toLowerCase() === "singles"
+              ? match.playerB
+              : "Team B"
+            : "Tie";
         setPoints = match.completedSets.map((set) => `${set.scoreA}-${set.scoreB}`).join(", ");
       }
 
@@ -250,6 +273,25 @@ app.get("/api/debug/data", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, error: "Failed to read data file", details: err.message });
+  }
+});
+
+// New Public Endpoint for Audience Read-Only Access
+app.get("/api/public/matches/:id", async (req, res) => {
+  try {
+    const matchId = req.params.id;
+    const data = await jsonfile.readFile(DATA_FILE);
+    const match = data.matches.find((m) => m.id === matchId);
+    if (!match) {
+      console.log(`GET /api/public/matches/${matchId} - Match not found`);
+      return res.status(404).json({ success: false, error: "Match not found" });
+    }
+    console.log(`GET /api/public/matches/${matchId} - Public match data fetched`);
+    // Optionally sanitize data here if you want to hide sensitive info
+    res.json(match);
+  } catch (err) {
+    console.error("Error in GET /api/public/matches/:id:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch match", details: err.message });
   }
 });
 

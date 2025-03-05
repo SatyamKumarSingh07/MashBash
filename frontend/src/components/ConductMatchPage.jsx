@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/BadBash2.jpg";
-import { createMatch } from "../utils/api"; // Use the updated utility
+import { createMatch } from "../utils/api";
 
 const ConductMatchPage = ({ addMatch }) => {
   const navigate = useNavigate();
@@ -52,10 +52,14 @@ const ConductMatchPage = ({ addMatch }) => {
 
     try {
       const response = await createMatch(matchData);
-      addMatch(response.data);
+      const newMatch = response.data;
+      addMatch(newMatch);
+      const publicLink = `https://badbash.netlify.app/view-score/${newMatch.id}`;
+      alert(`Match created successfully! Share this with the audience: ${publicLink}`);
       navigate("/fixtures");
     } catch (err) {
-      setError("Failed to create match: " + (err.response?.data?.error || err.message));
+      console.error("Failed to create match:", err.response?.data || err.message);
+      setError("Failed to create match: " + (err.response?.data?.message || "Please try again."));
     }
   };
 

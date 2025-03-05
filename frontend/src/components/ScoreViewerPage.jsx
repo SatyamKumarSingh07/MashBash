@@ -1,6 +1,7 @@
+// src/ScoreViewerPage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { fetchMatch } from "../utils/api"; // Import the utility function
+import { fetchPublicMatch } from "../utils/api"; // Import the public fetch method
 
 const ScoreViewerPage = () => {
   const { matchId } = useParams();
@@ -12,7 +13,7 @@ const ScoreViewerPage = () => {
     const fetchMatchData = async () => {
       try {
         setLoading(true);
-        const response = await fetchMatch(matchId); // Use utility function
+        const response = await fetchPublicMatch(matchId); // Use public endpoint
         if (response.data) {
           setMatch(response.data);
         } else {
@@ -48,6 +49,8 @@ const ScoreViewerPage = () => {
       <div className="match-info">
         <p>{entityA} vs {entityB}</p>
         <p>Set {completedSets.length + 1} of {match.totalSets}</p>
+        <p>Venue: {match.venue}</p>
+        <p>Date: {new Date(match.date).toLocaleDateString()}</p>
       </div>
 
       <div className="score-display">

@@ -1,54 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const LoginPage = ({ onLoginSuccess }) => { // Accept onLoginSuccess prop
-  const [id, setId] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+const BASE_URL = "https://mashbash.onrender.com"; // Updated to your Render URL
+
+const LoginPage = ({ onLoginSuccess }) => {
+  const [id, setId] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Clear any existing error on mount
-    setError('');
+    setError("");
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      const response = await axios.post('https://mashbash-backend.onrender.com/api/login', {
-        id,
-        password,
-      });
+      const response = await axios.post(`${BASE_URL}/api/login`, { id, password });
 
       if (response.data.success) {
-        // Store authentication status and token
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('token', response.data.token);
-        toast.success('Login successful!', {
-          position: 'top-right',
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("token", response.data.token);
+        toast.success("Login successful!", {
+          position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
         });
-        // Call onLoginSuccess to update App.jsx state
         if (onLoginSuccess) onLoginSuccess();
-        // Redirect to the intended page (e.g., fixtures or scorekeeper)
-        const from = location.state?.from?.pathname || '/fixtures';
-        setTimeout(() => navigate(from, { replace: true }), 1000); // Delay for animation
+        const from = location.state?.from?.pathname || "/fixtures";
+        setTimeout(() => navigate(from, { replace: true }), 1000);
       } else {
-        setError(response.data.message || 'Invalid ID or Password');
-        toast.error(response.data.message || 'Invalid ID or Password', {
-          position: 'top-right',
+        setError(response.data.message || "Invalid ID or Password");
+        toast.error(response.data.message || "Invalid ID or Password", {
+          position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -57,16 +52,26 @@ const LoginPage = ({ onLoginSuccess }) => { // Accept onLoginSuccess prop
         });
       }
     } catch (error) {
-      setError('Login failed. Please try again.');
-      toast.error('Login failed. Please try again.', {
-        position: 'top-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      console.error('Login error:', error);
+      if (error.response) {
+        setError(error.response.data.message || "Login failed. Please try again.");
+        toast.error(error.response.data.message || "Login failed.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else if (error.request) {
+        setError("Network error. Check your connection or server status.");
+        toast.error("Network error. Please try again later.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else {
+        setError("An unexpected error occurred.");
+        toast.error("An unexpected error occurred.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +91,7 @@ const LoginPage = ({ onLoginSuccess }) => { // Accept onLoginSuccess prop
               value={id}
               onChange={(e) => setId(e.target.value)}
               required
-              className={`input-field ${isLoading ? 'loading' : ''}`}
+              className={`input-field ${isLoading ? "loading" : ""}`}
               placeholder="Enter your Unique ID"
               disabled={isLoading}
             />
@@ -99,7 +104,7 @@ const LoginPage = ({ onLoginSuccess }) => { // Accept onLoginSuccess prop
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className={`input-field ${isLoading ? 'loading' : ''}`}
+              className={`input-field ${isLoading ? "loading" : ""}`}
               placeholder="Enter your Password"
               disabled={isLoading}
             />
@@ -107,10 +112,10 @@ const LoginPage = ({ onLoginSuccess }) => { // Accept onLoginSuccess prop
           {error && <p className="error">{error}</p>}
           <button
             type="submit"
-            className={`login-button ${isLoading ? 'loading' : ''}`}
+            className={`login-button ${isLoading ? "loading" : ""}`}
             disabled={isLoading}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>

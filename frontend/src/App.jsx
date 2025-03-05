@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ConductMatchPage from "./components/ConductMatchPage";
@@ -7,8 +7,8 @@ import ScorekeeperPage from "./components/ScorekeeperPage";
 import MatchSummaryPage from "./components/MatchSummaryPage";
 import LeaderboardPage from "./components/LeaderboardPage";
 import ScoreViewerPage from "./components/ScoreViewerPage";
-import LoginPage from "./components/LoginPage"; // Import LoginPage
-import { fetchMatches } from "./utils/api"; // Use the updated utility
+import LoginPage from "./components/LoginPage";
+import { fetchMatches } from "./utils/api";
 import "./App.css";
 
 function App() {
@@ -18,12 +18,18 @@ function App() {
   );
 
   useEffect(() => {
-    fetchMatches()
-      .then((response) => setMatches(response.data))
-      .catch((err) =>
-        console.error("Failed to fetch matches:", err.message, err.response?.data)
-      );
-  }, []);
+    if (isAuthenticated) {
+      fetchMatches()
+        .then((response) => {
+          if (response.data && Array.isArray(response.data)) {
+            setMatches(response.data);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch matches:", err.response?.data || err.message);
+        });
+    }
+  }, [isAuthenticated]);
 
   const updateMatches = (updatedMatches) => {
     setMatches(
@@ -37,13 +43,11 @@ function App() {
     setMatches((prevMatches) => [...prevMatches, newMatch]);
   };
 
-  // Handle login success (called from LoginPage)
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     localStorage.setItem("isAuthenticated", "true");
   };
 
-  // Handle logout (optional, if you want to add a logout feature later)
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem("isAuthenticated");
@@ -55,20 +59,17 @@ function App() {
       <div className="App">
         {isAuthenticated && <Navbar matches={matches} />}
         <Routes>
-          {/* Public Route: Login Page */}
           <Route
             path="/login"
             element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
           />
-
-          {/* Protected Routes: Require Authentication */}
           <Route
             path="/"
             element={
               isAuthenticated ? (
                 <ConductMatchPage addMatch={addMatch} />
               ) : (
-                <Navigate to="/login" replace state={{ from: { pathname: location.pathname } }} />
+                <Navigate to="/login" replace state={{ from: "/" }} />
               )
             }
           />
@@ -78,7 +79,7 @@ function App() {
               isAuthenticated ? (
                 <FixturesPage matches={matches} updateMatches={updateMatches} />
               ) : (
-                <Navigate to="/login" replace state={{ from: { pathname: location.pathname } }} />
+                <Navigate to="/login" replace state={{ from: "/fixtures" }} />
               )
             }
           />
@@ -88,7 +89,7 @@ function App() {
               isAuthenticated ? (
                 <ScorekeeperPage matches={matches} updateMatches={updateMatches} />
               ) : (
-                <Navigate to="/login" replace state={{ from: { pathname: location.pathname } }} />
+                <Navigate to="/login" replace state={{ from: "/scorekeeper/:matchId" }} />
               )
             }
           />
@@ -98,7 +99,7 @@ function App() {
               isAuthenticated ? (
                 <MatchSummaryPage matches={matches} />
               ) : (
-                <Navigate to="/login" replace state={{ from: { pathname: location.pathname } }} />
+                <Navigate to="/login" replace state={{ from: "/summary/:matchId" }} />
               )
             }
           />
@@ -108,29 +109,30 @@ function App() {
               isAuthenticated ? (
                 <LeaderboardPage matches={matches} />
               ) : (
-                <Navigate to="/login" replace state={{ from: { pathname: location.pathname } }} />
+                <Navigate to="/login" replace state={{ from: "/standings" }} />
               )
             }
           />
+          {/* Public route for audience */}
+          <Route path="/view-score/:matchId" element={<ScoreViewerPage />} />
+          {/* Existing authenticated route for ScoreViewer (optional) */}
           <Route
             path="/match/:matchId/scores"
             element={
               isAuthenticated ? (
                 <ScoreViewerPage />
               ) : (
-                <Navigate to="/login" replace state={{ from: { pathname: location.pathname } }} />
+                <Navigate to="/login" replace state={{ from: "/match/:matchId/scores" }} />
               )
             }
           />
-
-          {/* Default Route: Redirect to Login if not authenticated */}
           <Route
             path="*"
             element={
               isAuthenticated ? (
                 <Navigate to="/" replace />
               ) : (
-                <Navigate to="/login" replace state={{ from: { pathname: "/" } }} />
+                <Navigate to="/login" replace state={{ from: "/" }} />
               )
             }
           />
