@@ -56,88 +56,86 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="App">
-        {isAuthenticated && <Navbar matches={matches} />}
-        <Routes>
-          <Route
-            path="/login"
-            element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
-          />
-          <Route
-            path="/"
-            element={
-              isAuthenticated ? (
-                <ConductMatchPage addMatch={addMatch} />
-              ) : (
-                <Navigate to="/login" replace state={{ from: "/" }} />
-              )
-            }
-          />
-          <Route
-            path="/fixtures"
-            element={
-              isAuthenticated ? (
-                <FixturesPage matches={matches} updateMatches={updateMatches} />
-              ) : (
-                <Navigate to="/login" replace state={{ from: "/fixtures" }} />
-              )
-            }
-          />
-          <Route
-            path="/scorekeeper/:matchId"
-            element={
-              isAuthenticated ? (
-                <ScorekeeperPage matches={matches} updateMatches={updateMatches} />
-              ) : (
-                <Navigate to="/login" replace state={{ from: "/scorekeeper/:matchId" }} />
-              )
-            }
-          />
-          <Route
-            path="/summary/:matchId"
-            element={
-              isAuthenticated ? (
-                <MatchSummaryPage matches={matches} />
-              ) : (
-                <Navigate to="/login" replace state={{ from: "/summary/:matchId" }} />
-              )
-            }
-          />
-          <Route
-            path="/standings"
-            element={
-              isAuthenticated ? (
-                <LeaderboardPage matches={matches} />
-              ) : (
-                <Navigate to="/login" replace state={{ from: "/standings" }} />
-              )
-            }
-          />
-          {/* Public route for audience */}
-          <Route path="/view-score/:matchId" element={<ScoreViewerPage />} />
-          {/* Existing authenticated route for ScoreViewer (optional) */}
-          <Route
-            path="/match/:matchId/scores"
-            element={
-              isAuthenticated ? (
-                <ScoreViewerPage />
-              ) : (
-                <Navigate to="/login" replace state={{ from: "/match/:matchId/scores" }} />
-              )
-            }
-          />
-          <Route
-            path="*"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/" replace />
-              ) : (
-                <Navigate to="/login" replace state={{ from: "/" }} />
-              )
-            }
-          />
-        </Routes>
-      </div>
+      <Routes>
+        {/* Public Route - No Navbar or App Class */}
+        <Route path="/view-score/:matchId" element={<ScoreViewerPage />} />
+
+        {/* Authenticated Routes with Navbar and App Class */}
+        <Route
+          path="/*"
+          element={
+            <div className="App">
+              {isAuthenticated && <Navbar matches={matches} />}
+              <Routes>
+                <Route
+                  path="/login"
+                  element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
+                />
+                <Route
+                  path="/"
+                  element={
+                    isAuthenticated ? (
+                      <ConductMatchPage addMatch={addMatch} />
+                    ) : (
+                      <Navigate to="/login" replace state={{ from: "/" }} />
+                    )
+                  }
+                />
+                <Route
+                  path="/fixtures"
+                  element={
+                    isAuthenticated ? (
+                      <FixturesPage matches={matches} updateMatches={updateMatches} />
+                    ) : (
+                      <Navigate to="/login" replace state={{ from: "/fixtures" }} />
+                    )
+                  }
+                />
+                <Route
+                  path="/scorekeeper/:matchId"
+                  element={
+                    isAuthenticated ? (
+                      <ScorekeeperPage matches={matches} updateMatches={updateMatches} />
+                    ) : (
+                      <Navigate to="/login" replace state={{ from: "/scorekeeper/:matchId" }} />
+                    )
+                  }
+                />
+                <Route
+                  path="/summary/:matchId"
+                  element={
+                    isAuthenticated ? (
+                      <MatchSummaryPage matches={matches} />
+                    ) : (
+                      <Navigate to="/login" replace state={{ from: "/summary/:matchId" }} />
+                    )
+                  }
+                />
+                <Route
+                  path="/standings"
+                  element={
+                    isAuthenticated ? (
+                      <LeaderboardPage matches={matches} />
+                    ) : (
+                      <Navigate to="/login" replace state={{ from: "/standings" }} />
+                    )
+                  }
+                />
+                <Route
+                  path="*"
+                  element={
+                    isAuthenticated ? (
+                      <Navigate to="/" replace />
+                    ) : (
+                      <Navigate to="/login" replace state={{ from: "/" }} />
+                    )
+                  }
+                />
+              </Routes>
+            </div>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 }
