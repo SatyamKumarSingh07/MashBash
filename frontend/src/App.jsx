@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
@@ -6,9 +7,8 @@ import FixturesPage from "./components/FixturesPage";
 import ScorekeeperPage from "./components/ScorekeeperPage";
 import MatchSummaryPage from "./components/MatchSummaryPage";
 import LeaderboardPage from "./components/LeaderboardPage";
-import ScoreViewerPage from "./components/ScoreViewerPage";
+import PublicScoreViewPage from "./components/PublicScoreViewPage";
 import LoginPage from "./components/LoginPage";
-import AdminDashboard from "./components/AdminDashboard";
 import { fetchMatches } from "./utils/api";
 import "./App.css";
 
@@ -17,22 +17,40 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem("isAuthenticated") === "true"
   );
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchMatches()
-        .then((response) => {
-          if (response.data && Array.isArray(response.data)) {
-            setMatches(response.data);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to fetch matches:", err.response?.data || err.message);
-          if (err.response?.status === 403) {
-            handleLogout();
-          }
-        });
-    }
+    const fetchMatchesData = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setFetchError("No authentication token found. Please log in again.");
+          handleLogout();
+          return;
+        }
+        console.log("Fetching matches with token:", token);
+        const response = await fetchMatches();
+        console.log("Fetch matches response:", response.data);
+        if (response.data && Array.isArray(response.data)) {
+          setMatches(response.data);
+          console.log("Updated matches state in App.jsx:", response.data); // Add this log
+          setFetchError(null);
+        } else {
+          setFetchError("Invalid response format from server");
+        }
+      } catch (err) {
+        console.error("Failed to fetch matches:", err.response?.data || err.message);
+        setFetchError(`Failed to fetch matches: ${err.response?.data?.message || err.message}`);
+        if (err.response?.status === 403 || err.response?.status === 401) {
+          console.log("Authentication failed, logging out...");
+          handleLogout();
+        }
+      }
+    };
+
+    fetchMatchesData();
   }, [isAuthenticated]);
 
   const updateMatches = (updatedMatches) => {
@@ -50,10 +68,13 @@ function App() {
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     localStorage.setItem("isAuthenticated", "true");
+    setFetchError(null);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setMatches([]);
+    setFetchError(null);
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("token");
   };
@@ -62,31 +83,47 @@ function App() {
     const [isValid, setIsValid] = useState(null);
 
     useEffect(() => {
+      let isMounted = true;
+
       const verifyToken = async () => {
+        if (!isMounted) return;
+
         try {
+          const token = localStorage.getItem("token");
+          if (!token) throw new Error("No token found");
+          console.log("Verifying token:", token);
           await fetchMatches();
-          setIsValid(true);
+          if (isMounted) setIsValid(true);
         } catch (error) {
-          setIsValid(false);
-          handleLogout();
+          console.error("Token verification failed:", {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data,
+          });
+          if (isMounted) setIsValid(false);
         }
       };
+
       if (isAuthenticated) {
         verifyToken();
       } else {
-        setIsValid(false);
+        if (isMounted) setIsValid(false);
       }
-    }, []);
 
-    if (isValid === null) return <div>Loading...</div>;
+      return () => {
+        isMounted = false;
+      };
+    }, [isAuthenticated]);
+
+    if (isValid === null) return <div>Verifying authentication...</div>;
     return isValid ? children : <Navigate to="/login" replace />;
   };
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Route */}
-        <Route path="/view-score/:matchId" element={<ScoreViewerPage />} />
+        {/* Public Routes */}
+        <Route path="/public-scores" element={<PublicScoreViewPage />} />
 
         {/* Authenticated Routes */}
         <Route
@@ -94,6 +131,7 @@ function App() {
           element={
             <div className="App">
               {isAuthenticated && <Navbar matches={matches} onLogout={handleLogout} />}
+              {fetchError && <div className="error-message">{fetchError}</div>}
               <Routes>
                 <Route
                   path="/login"
@@ -136,14 +174,6 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <LeaderboardPage matches={matches} />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <AdminDashboard />
                     </ProtectedRoute>
                   }
                 />

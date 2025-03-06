@@ -11,8 +11,11 @@ const AdminDashboard = () => {
 
   const fetchUserData = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error("No authentication token found");
+
       const response = await axios.get('https://mashbash.onrender.com/api/admin/users', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(response.data.users || []);
       setActiveSessions(response.data.activeSessions || {});
@@ -40,10 +43,13 @@ const AdminDashboard = () => {
 
   const logoutUser = async (userId) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error("No authentication token found");
+
       await axios.post(
         `https://mashbash.onrender.com/api/admin/logout/${userId}`,
         {},
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchUserData(); // Refresh data after logout
       alert('User logged out successfully');
@@ -87,7 +93,7 @@ const AdminDashboard = () => {
                 <td>{user.loginCount}</td>
                 <td>{activeSessions[user.id] ? 'Active' : 'Inactive'}</td>
                 <td>
-                  {activeSessions[user.id] && (
+                  {activeSessions[user.id] && user.id !== localStorage.getItem('token')?.split('.')[1] && (
                     <button onClick={() => logoutUser(user.id)}>
                       Logout
                     </button>

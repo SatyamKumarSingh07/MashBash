@@ -1,10 +1,11 @@
+// src/components/LoginPage.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const BASE_URL = "https://mashbash.onrender.com"; // Updated to your Render URL
+const BASE_URL = "https://mashbash.onrender.com"; // Your Render URL
 
 const LoginPage = ({ onLoginSuccess }) => {
   const [id, setId] = useState("");
@@ -24,7 +25,9 @@ const LoginPage = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
+      console.log("Attempting login with:", { id, password }); // Debug credentials
       const response = await axios.post(`${BASE_URL}/api/login`, { id, password });
+      console.log("Login response:", response.data); // Debug response
 
       if (response.data.success) {
         localStorage.setItem("isAuthenticated", "true");
@@ -45,13 +48,15 @@ const LoginPage = ({ onLoginSuccess }) => {
         toast.error(response.data.message || "Invalid ID or Password", {
           position: "top-right",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
         });
       }
     } catch (error) {
+      const errorDetails = {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      };
+      console.error("Login error:", errorDetails); // Detailed error logging
       if (error.response) {
         setError(error.response.data.message || "Login failed. Please try again.");
         toast.error(error.response.data.message || "Login failed.", {
@@ -71,7 +76,6 @@ const LoginPage = ({ onLoginSuccess }) => {
           autoClose: 3000,
         });
       }
-      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

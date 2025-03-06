@@ -1,3 +1,4 @@
+// src/utils/api.js
 import axios from "axios";
 
 const API_URL = "https://mashbash.onrender.com/api/";
@@ -56,6 +57,6 @@ export const exportMatches = async () => {
   }
 };
 
-export const fetchPublicMatch = (matchId) => {
-  return axios.get(`${PUBLIC_API_URL}matches/${matchId}`);
+export const fetchPublicMatches = () => {
+  return axios.get(`${PUBLIC_API_URL}matches`);
 };

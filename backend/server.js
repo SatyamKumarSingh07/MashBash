@@ -344,21 +344,15 @@ app.get("/api/debug/data", authenticateToken, async (req, res) => {
   }
 });
 
-// Public endpoint for audience read-only access
-app.get("/api/public/matches/:id", async (req, res) => {
+// Public endpoint to fetch all matches (no authentication required)
+app.get("/api/public/matches", async (req, res) => {
   try {
-    const matchId = req.params.id;
     const data = await jsonfile.readFile(DATA_FILE);
-    const match = data.matches.find((m) => m.id === matchId);
-    if (!match) {
-      console.log(`GET /api/public/matches/${matchId} - Match not found`);
-      return res.status(404).json({ success: false, error: "Match not found" });
-    }
-    console.log(`GET /api/public/matches/${matchId} - Public match data fetched`);
-    res.json(match);
+    console.log("GET /api/public/matches - Fetched:", data.matches.length, "matches");
+    res.json(data.matches);
   } catch (err) {
-    console.error("Error in GET /api/public/matches/:id:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch match", details: err.message });
+    console.error("Error in GET /api/public/matches:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch matches", details: err.message });
   }
 });
 

@@ -1,5 +1,6 @@
+// src/components/FixturesPage.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchMatches, deleteMatch, updateMatch, exportMatches } from "../utils/api";
 
 const FixturesPage = ({ matches, updateMatches }) => {
@@ -15,12 +16,13 @@ const FixturesPage = ({ matches, updateMatches }) => {
   const [teamBCourt, setTeamBCourt] = useState({ right: "", left: "" });
 
   useEffect(() => {
+    console.log("FixturesPage received matches prop:", matches);
     const fetchMatchesData = async () => {
       try {
         setLoading(true);
         const response = await fetchMatches();
         if (response.data && Array.isArray(response.data)) {
-          console.log("Initial fetch - Fetched matches:", response.data);
+          console.log("Fetched matches in FixturesPage:", response.data);
           updateMatches(response.data);
         }
       } catch (err) {
@@ -32,10 +34,12 @@ const FixturesPage = ({ matches, updateMatches }) => {
       }
     };
 
-    if (!isInitialFetchDone && (!matches || matches.length === 0)) {
+    if (!matches || matches.length === 0) {
       fetchMatchesData();
+    } else {
+      setIsInitialFetchDone(true);
     }
-  }, [updateMatches, isInitialFetchDone, matches]);
+  }, [updateMatches, matches]);
 
   const deleteMatchAction = useCallback(
     async (matchId) => {
@@ -104,9 +108,18 @@ const FixturesPage = ({ matches, updateMatches }) => {
     return { winner, setPoints };
   };
 
-  const pendingMatches = useMemo(() => matches.filter((match) => match.status === "pending"), [matches]);
-  const ongoingMatches = useMemo(() => matches.filter((match) => match.status === "ongoing"), [matches]);
-  const completedMatches = useMemo(() => matches.filter((match) => match.status === "completed"), [matches]);
+  const pendingMatches = useMemo(() => {
+    console.log("Pending Matches:", matches.filter((match) => match.status === "pending")); // Debug log
+    return matches.filter((match) => match.status === "pending");
+  }, [matches]);
+  const ongoingMatches = useMemo(() => {
+    console.log("Ongoing Matches:", matches.filter((match) => match.status === "ongoing")); // Debug log
+    return matches.filter((match) => match.status === "ongoing");
+  }, [matches]);
+  const completedMatches = useMemo(() => {
+    console.log("Completed Matches:", matches.filter((match) => match.status === "completed")); // Debug log
+    return matches.filter((match) => match.status === "completed");
+  }, [matches]);
 
   if (loading && !isInitialFetchDone) {
     return <div className="loading">Loading matches...</div>;
@@ -114,22 +127,10 @@ const FixturesPage = ({ matches, updateMatches }) => {
 
   const renderPlayers = (match) => {
     const matchType = match.matchType.toLowerCase();
-    const publicLink = `https://badbash.netlify.app/view-score/${match.id}`;
     if (matchType === "singles") {
       return (
         <>
           <span className="player-name">{match.playerA}</span> vs <span className="player-name">{match.playerB}</span>
-          <br />
-          <button
-            className="nav-btn"
-            onClick={() => {
-              navigator.clipboard.writeText(publicLink);
-              alert(`Copied to clipboard: ${publicLink}`);
-            }}
-            disabled={actionLoading}
-          >
-            Copy Public Link
-          </button>
         </>
       );
     } else if (matchType === "doubles" || matchType === "mixed") {
@@ -137,17 +138,6 @@ const FixturesPage = ({ matches, updateMatches }) => {
         <>
           <span className="player-name">{match.teamA.player1}/{match.teamA.player2}</span> vs{" "}
           <span className="player-name">{match.teamB.player1}/{match.teamB.player2}</span>
-          <br />
-          <button
-            className="nav-btn"
-            onClick={() => {
-              navigator.clipboard.writeText(publicLink);
-              alert(`Copied to clipboard: ${publicLink}`);
-            }}
-            disabled={actionLoading}
-          >
-            Copy Public Link
-          </button>
         </>
       );
     }
@@ -240,9 +230,14 @@ const FixturesPage = ({ matches, updateMatches }) => {
     <div className="fixtures-container">
       <div className="fixtures-header">
         <h2>Fixtures</h2>
-        <button className="export-btn" onClick={handleExport}>
-          Export to Excel
-        </button>
+        <div>
+          <Link to="/public-scores" className="public-scores-link">
+            View Public Scores
+          </Link>
+          <button className="export-btn" onClick={handleExport}>
+            Export to Excel
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -250,9 +245,11 @@ const FixturesPage = ({ matches, updateMatches }) => {
 
       <div className="fixtures-section">
         <h3>Pending Matches</h3>
-        {pendingMatches.length === 0 ? (
+        {loading && !isInitialFetchDone && <div className="loading">Loading matches...</div>}
+        {!loading && isInitialFetchDone && pendingMatches.length === 0 && (
           <p className="no-matches">No pending matches scheduled.</p>
-        ) : (
+        )}
+        {!loading && isInitialFetchDone && pendingMatches.length > 0 && (
           <div className="matches-grid">
             {pendingMatches.map((match) => (
               <div key={match.id} className="match-card">
@@ -410,9 +407,11 @@ const FixturesPage = ({ matches, updateMatches }) => {
 
       <div className="fixtures-section">
         <h3>Matches In Progress</h3>
-        {ongoingMatches.length === 0 ? (
+        {loading && !isInitialFetchDone && <div className="loading">Loading matches...</div>}
+        {!loading && isInitialFetchDone && ongoingMatches.length === 0 && (
           <p className="no-matches">No matches in progress.</p>
-        ) : (
+        )}
+        {!loading && isInitialFetchDone && ongoingMatches.length > 0 && (
           <div className="matches-grid">
             {ongoingMatches.map((match) => (
               <div key={match.id} className="match-card ongoing">
@@ -453,9 +452,11 @@ const FixturesPage = ({ matches, updateMatches }) => {
 
       <div className="fixtures-section">
         <h3>Completed Matches</h3>
-        {completedMatches.length === 0 ? (
+        {loading && !isInitialFetchDone && <div className="loading">Loading matches...</div>}
+        {!loading && isInitialFetchDone && completedMatches.length === 0 && (
           <p className="no-matches">No matches completed yet.</p>
-        ) : (
+        )}
+        {!loading && isInitialFetchDone && completedMatches.length > 0 && (
           <div className="matches-grid">
             {completedMatches.map((match) => {
               const { winner, setPoints } = getMatchResult(match);
@@ -488,6 +489,12 @@ const FixturesPage = ({ matches, updateMatches }) => {
           </div>
         )}
       </div>
+
+      {!loading && isInitialFetchDone && matches.length === 0 && (
+        <div className="no-matches-message">
+          <p>No ongoing, upcoming, or completed matches.</p>
+        </div>
+      )}
     </div>
   );
 };
