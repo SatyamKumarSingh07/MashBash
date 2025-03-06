@@ -7,59 +7,90 @@ const fs = require("fs");
 const jwt = require("jsonwebtoken");
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Use Render's PORT or fallback to 5000 locally
+const PORT = process.env.PORT || 5000;
 const DATA_FILE = path.resolve(__dirname, "data.json");
+const USERS_FILE = path.resolve(__dirname, "data2.json");
 
-// Configure CORS to allow requests from specific origins (local and Netlify)
+// CORS configuration
 const corsOptions = {
-  origin: [
-    "http://localhost:5173", // Allow local development (Vite default)
-    "https://badbash.netlify.app", // Your Netlify frontend URL
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allow these HTTP methods
-  allowedHeaders: ["Content-Type", "Authorization"], // Allow these headers
-  credentials: true, // Allow cookies if needed
-  optionsSuccessStatus: 200, // Some browsers (e.g., Safari) require this for OPTIONS
+  origin: ["http://localhost:5173", "https://badbash.netlify.app"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Add a root route for basic status
+// Initialize data2.json if it doesn't exist
+if (!fs.existsSync(USERS_FILE)) {
+  jsonfile.writeFileSync(USERS_FILE, { users: [], activeSessions: {} }, { spaces: 2 });
+}
+
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the MashBash API", status: "running" });
 });
 
-// Define hardcoded credentials (replace with environment variables for production)
-const VALID_ID = process.env.VALID_ID || "uniqueId123"; // Use environment variable or fallback
-const VALID_PASSWORD = process.env.VALID_PASSWORD || "secretPassword123"; // Use environment variable or fallback
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"; // Use environment variable for JWT secret
+const VALID_ID = process.env.VALID_ID || "uniqueId123";
+const VALID_PASSWORD = process.env.VALID_PASSWORD || "secretPassword123";
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// Middleware to authenticate token for protected routes
+// Middleware to authenticate token
 const authenticateToken = (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) return res.status(401).json({ success: false, message: "No token provided" });
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET, async (err, user) => {
     if (err) return res.status(403).json({ success: false, message: "Invalid token" });
+
+    // Check if session is still valid
+    const userData = await jsonfile.readFile(USERS_FILE);
+    const session = userData.activeSessions[user.id];
+    if (!session || session.token !== token) {
+      return res.status(403).json({ success: false, message: "Session expired" });
+    }
+    
     req.user = user;
     next();
   });
 };
 
-// Login endpoint
-app.post("/api/login", (req, res) => {
+// Login endpoint with user tracking
+app.post("/api/login", async (req, res) => {
   const { id, password } = req.body;
 
-  // Validate input
   if (!id || !password) {
     return res.status(400).json({ success: false, message: "ID and password are required" });
   }
 
-  // Check if ID and password match
   if (id === VALID_ID && password === VALID_PASSWORD) {
-    // Generate a JWT token (expires in 24 hours)
     const token = jwt.sign({ id }, JWT_SECRET, { expiresIn: "24h" });
+    const userData = await jsonfile.readFile(USERS_FILE);
+    
+    // Update user info
+    const userIndex = userData.users.findIndex(u => u.id === id);
+    const userInfo = {
+      id,
+      lastLogin: new Date().toISOString(),
+      loginCount: userIndex !== -1 ? (userData.users[userIndex].loginCount || 0) + 1 : 1
+    };
+
+    if (userIndex === -1) {
+      userData.users.push(userInfo);
+    } else {
+      userData.users[userIndex] = userInfo;
+    }
+
+    // Track active session
+    userData.activeSessions[id] = {
+      token,
+      loginTime: new Date().toISOString(),
+      userAgent: req.headers["user-agent"]
+    };
+
+    await jsonfile.writeFile(USERS_FILE, userData, { spaces: 2 });
+    
     console.log(`POST /api/login - Successful login for ID: ${id}`);
     return res.json({ success: true, token });
   } else {
@@ -71,7 +102,44 @@ app.post("/api/login", (req, res) => {
 // Handle OPTIONS preflight requests (CORS)
 app.options("/api/login", cors(corsOptions));
 
-// Protect /api/matches endpoints with authentication
+// Admin endpoint to get user info
+app.get("/api/admin/users", authenticateToken, async (req, res) => {
+  try {
+    const userData = await jsonfile.readFile(USERS_FILE);
+    res.json({
+      success: true,
+      users: userData.users,
+      activeSessions: userData.activeSessions
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Failed to fetch user data" });
+  }
+});
+
+// Admin endpoint to logout a user
+app.post("/api/admin/logout/:userId", authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userData = await jsonfile.readFile(USERS_FILE);
+    
+    // Only admin can logout other users (assuming VALID_ID is admin)
+    if (req.user.id !== VALID_ID) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (userData.activeSessions[userId]) {
+      delete userData.activeSessions[userId];
+      await jsonfile.writeFile(USERS_FILE, userData, { spaces: 2 });
+      res.json({ success: true, message: "User logged out successfully" });
+    } else {
+      res.status(404).json({ success: false, message: "No active session found" });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Failed to logout user" });
+  }
+});
+
+// Protected match endpoints
 app.get("/api/matches", authenticateToken, async (req, res) => {
   try {
     const data = await jsonfile.readFile(DATA_FILE);
@@ -109,7 +177,7 @@ app.post("/api/matches", authenticateToken, async (req, res) => {
       id: matchId,
       points: [],
       completedSets: [],
-      matchType: req.body.matchType.toLowerCase(), // Normalize matchType to lowercase
+      matchType: req.body.matchType.toLowerCase(),
     };
     data.matches.push(newMatch);
     await jsonfile.writeFile(DATA_FILE, data, { spaces: 2 });
@@ -137,7 +205,7 @@ app.put("/api/matches/:id", authenticateToken, async (req, res) => {
       ...data.matches[matchIndex],
       ...req.body,
       id: matchId,
-      matchType: req.body.matchType?.toLowerCase() || data.matches[matchIndex].matchType, // Normalize matchType to lowercase
+      matchType: req.body.matchType?.toLowerCase() || data.matches[matchIndex].matchType,
     };
 
     data.matches[matchIndex] = updatedMatch;
@@ -276,7 +344,7 @@ app.get("/api/debug/data", authenticateToken, async (req, res) => {
   }
 });
 
-// New Public Endpoint for Audience Read-Only Access
+// Public endpoint for audience read-only access
 app.get("/api/public/matches/:id", async (req, res) => {
   try {
     const matchId = req.params.id;
@@ -287,7 +355,6 @@ app.get("/api/public/matches/:id", async (req, res) => {
       return res.status(404).json({ success: false, error: "Match not found" });
     }
     console.log(`GET /api/public/matches/${matchId} - Public match data fetched`);
-    // Optionally sanitize data here if you want to hide sensitive info
     res.json(match);
   } catch (err) {
     console.error("Error in GET /api/public/matches/:id:", err);
@@ -295,10 +362,11 @@ app.get("/api/public/matches/:id", async (req, res) => {
   }
 });
 
-// Listen on 0.0.0.0 for Render compatibility
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Using data file: ${DATA_FILE}`);
+  console.log(`Using users file: ${USERS_FILE}`);
 });
 
-module.exports = app; // Export for testing or modularity
+module.exports = app;

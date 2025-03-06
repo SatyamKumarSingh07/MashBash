@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// Fixing the logo import for Vite
 const logo = new URL("../assets/BadBash2.jpg", import.meta.url).href;
 
-const Navbar = ({ matches = [] }) => {
+const Navbar = ({ matches = [], onLogout }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -62,6 +60,9 @@ const Navbar = ({ matches = [] }) => {
         <button className="nav-btn" onClick={() => handleNavigation("/standings")}>
           Leaderboard
         </button>
+        <button className="nav-btn" onClick={() => handleNavigation("/admin")}>
+          Admin
+        </button>
 
         <div className="dropdown">
           <button className="nav-btn">Scorekeeper</button>
@@ -98,6 +99,10 @@ const Navbar = ({ matches = [] }) => {
             )}
           </div>
         </div>
+
+        <button className="nav-btn" onClick={onLogout}>
+          Logout
+        </button>
       </div>
     </nav>
   );

@@ -2049,3 +2049,41 @@ button:hover {
         visibility: hidden;
     }
 }
+/* src/App.css */
+.admin-dashboard {
+    padding: 20px;
+  }
+  
+  .admin-dashboard h2 {
+    margin-bottom: 20px;
+  }
+  
+  .admin-dashboard table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  
+  .admin-dashboard th,
+  .admin-dashboard td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .admin-dashboard th {
+    background-color: #f5f5f5;
+  }
+  
+  .admin-dashboard button {
+    padding: 5px 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  
+  .admin-dashboard button:hover {
+    background-color: #c82333;
+  }

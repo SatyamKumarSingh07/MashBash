@@ -8,6 +8,7 @@ import MatchSummaryPage from "./components/MatchSummaryPage";
 import LeaderboardPage from "./components/LeaderboardPage";
 import ScoreViewerPage from "./components/ScoreViewerPage";
 import LoginPage from "./components/LoginPage";
+import AdminDashboard from "./components/AdminDashboard";
 import { fetchMatches } from "./utils/api";
 import "./App.css";
 
@@ -27,6 +28,9 @@ function App() {
         })
         .catch((err) => {
           console.error("Failed to fetch matches:", err.response?.data || err.message);
+          if (err.response?.status === 403) {
+            handleLogout();
+          }
         });
     }
   }, [isAuthenticated]);
@@ -54,18 +58,42 @@ function App() {
     localStorage.removeItem("token");
   };
 
+  const ProtectedRoute = ({ children }) => {
+    const [isValid, setIsValid] = useState(null);
+
+    useEffect(() => {
+      const verifyToken = async () => {
+        try {
+          await fetchMatches();
+          setIsValid(true);
+        } catch (error) {
+          setIsValid(false);
+          handleLogout();
+        }
+      };
+      if (isAuthenticated) {
+        verifyToken();
+      } else {
+        setIsValid(false);
+      }
+    }, []);
+
+    if (isValid === null) return <div>Loading...</div>;
+    return isValid ? children : <Navigate to="/login" replace />;
+  };
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Route - No Navbar or App Class */}
+        {/* Public Route */}
         <Route path="/view-score/:matchId" element={<ScoreViewerPage />} />
 
-        {/* Authenticated Routes with Navbar and App Class */}
+        {/* Authenticated Routes */}
         <Route
           path="/*"
           element={
             <div className="App">
-              {isAuthenticated && <Navbar matches={matches} />}
+              {isAuthenticated && <Navbar matches={matches} onLogout={handleLogout} />}
               <Routes>
                 <Route
                   path="/login"
@@ -74,62 +102,54 @@ function App() {
                 <Route
                   path="/"
                   element={
-                    isAuthenticated ? (
+                    <ProtectedRoute>
                       <ConductMatchPage addMatch={addMatch} />
-                    ) : (
-                      <Navigate to="/login" replace state={{ from: "/" }} />
-                    )
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/fixtures"
                   element={
-                    isAuthenticated ? (
+                    <ProtectedRoute>
                       <FixturesPage matches={matches} updateMatches={updateMatches} />
-                    ) : (
-                      <Navigate to="/login" replace state={{ from: "/fixtures" }} />
-                    )
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/scorekeeper/:matchId"
                   element={
-                    isAuthenticated ? (
+                    <ProtectedRoute>
                       <ScorekeeperPage matches={matches} updateMatches={updateMatches} />
-                    ) : (
-                      <Navigate to="/login" replace state={{ from: "/scorekeeper/:matchId" }} />
-                    )
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/summary/:matchId"
                   element={
-                    isAuthenticated ? (
+                    <ProtectedRoute>
                       <MatchSummaryPage matches={matches} />
-                    ) : (
-                      <Navigate to="/login" replace state={{ from: "/summary/:matchId" }} />
-                    )
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/standings"
                   element={
-                    isAuthenticated ? (
+                    <ProtectedRoute>
                       <LeaderboardPage matches={matches} />
-                    ) : (
-                      <Navigate to="/login" replace state={{ from: "/standings" }} />
-                    )
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="*"
-                  element={
-                    isAuthenticated ? (
-                      <Navigate to="/" replace />
-                    ) : (
-                      <Navigate to="/login" replace state={{ from: "/" }} />
-                    )
-                  }
+                  element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
                 />
               </Routes>
             </div>
