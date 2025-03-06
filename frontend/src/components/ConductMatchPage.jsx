@@ -1,3 +1,4 @@
+// src/components/ConductMatchPage.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/BadBash2.jpg";
@@ -14,6 +15,7 @@ const ConductMatchPage = ({ addMatch }) => {
     totalSets: 1,
     venue: "",
     date: "",
+    matchPoints: "21", // Default to 21
   });
   const [error, setError] = useState(null);
 
@@ -40,6 +42,7 @@ const ConductMatchPage = ({ addMatch }) => {
       venue: formData.venue,
       date: formData.date,
       status: "pending",
+      matchPoints: parseInt(formData.matchPoints), // Include matchPoints
     };
 
     if (formData.matchType.toLowerCase() === "singles") {
@@ -155,6 +158,14 @@ const ConductMatchPage = ({ addMatch }) => {
             max="5"
             required
           />
+        </label>
+        <label>
+          Match Points:
+          <select name="matchPoints" value={formData.matchPoints} onChange={handleChange}>
+            <option value="11">11</option>
+            <option value="15">15</option>
+            <option value="21">21</option>
+          </select>
         </label>
         <label>
           Venue:

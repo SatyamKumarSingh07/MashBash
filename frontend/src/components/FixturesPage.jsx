@@ -14,6 +14,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
   const [courtSelection, setCourtSelection] = useState(null);
   const [teamACourt, setTeamACourt] = useState({ right: "", left: "" });
   const [teamBCourt, setTeamBCourt] = useState({ right: "", left: "" });
+  const [copySuccess, setCopySuccess] = useState(false); // State for copy feedback
 
   const fetchMatchesData = useCallback(async () => {
     try {
@@ -83,11 +84,6 @@ const FixturesPage = ({ matches, updateMatches }) => {
       setError("Failed to export matches: " + (err.response?.data?.message || err.message));
     }
   }, []);
-
-  const viewMatchSummary = useCallback(
-    (matchId) => navigate(`/summary/${matchId}`),
-    [navigate]
-  );
 
   const getMatchResult = (match) => {
     if (match.status !== "completed" || !match.completedSets || match.completedSets.length === 0) {
@@ -230,14 +226,40 @@ const FixturesPage = ({ matches, updateMatches }) => {
     }
   };
 
+  // Function to copy the public score link to clipboard
+  const handleCopyLink = () => {
+    const publicScoreUrl = "https://badbash.netlify.app/public-scores"; // Replace with your actual deployed URL
+    navigator.clipboard.writeText(publicScoreUrl)
+      .then(() => {
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+        setError("Failed to copy link to clipboard");
+      });
+  };
+
   return (
     <div className="fixtures-container">
       <div className="fixtures-header">
         <h2>Fixtures</h2>
-        <div>
-          <Link to="/public-scores" className="public-scores-link">
-            View Public Scores
-          </Link>
+        <div className="header-actions">
+          <div className="copy-link-container">
+            <input
+              type="text"
+              value="https://badbash.netlify.app/public-scores"
+              readOnly
+              className="copy-link-input"
+            />
+            <button
+              className="copy-link-btn"
+              onClick={handleCopyLink}
+              disabled={copySuccess}
+            >
+              {copySuccess ? "Copied!" : "Copy Link"}
+            </button>
+          </div>
           <button className="export-btn" onClick={handleExport}>
             Export to Excel
           </button>
@@ -443,13 +465,6 @@ const FixturesPage = ({ matches, updateMatches }) => {
                   >
                     Continue Match
                   </button>
-                  <button
-                    className="summary-btn"
-                    onClick={() => viewMatchSummary(match.id)}
-                    disabled={actionLoading}
-                  >
-                    View Summary
-                  </button>
                 </div>
               </div>
             ))}
@@ -482,13 +497,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
                     <p className="set-points">Set Points: {setPoints}</p>
                   </div>
                   <div className="card-actions">
-                    <button
-                      className="summary-btn"
-                      onClick={() => viewMatchSummary(match.id)}
-                      disabled={actionLoading}
-                    >
-                      View Summary
-                    </button>
+                    {/* Removed View Summary button as per request */}
                   </div>
                 </div>
               );

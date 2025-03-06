@@ -185,6 +185,7 @@ app.get("/api/export", authenticateToken, async (req, res) => {
       { header: "Match Type", key: "matchType", width: 15 },
       { header: "Player A / Team A", key: "entityA", width: 25 },
       { header: "Player B / Team B", key: "entityB", width: 25 },
+      { header: "Match Points", key: "matchPoints", width: 12 }, // New column for matchPoints
       { header: "Total Sets", key: "totalSets", width: 10 },
       { header: "Venue", key: "venue", width: 20 },
       { header: "Date", key: "date", width: 15 },
@@ -240,6 +241,7 @@ app.get("/api/export", authenticateToken, async (req, res) => {
         matchType: match.matchType,
         entityA: entityA,
         entityB: entityB,
+        matchPoints: match.matchPoints || "N/A", // Include matchPoints, default to "N/A" if not present
         totalSets: match.totalSets,
         venue: match.venue,
         date: match.date,
