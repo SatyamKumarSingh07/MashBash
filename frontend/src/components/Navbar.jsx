@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 const logo = new URL("../assets/BadBash2.jpg", import.meta.url).href;
@@ -59,9 +60,6 @@ const Navbar = ({ matches = [], onLogout }) => {
         </button>
         <button className="nav-btn" onClick={() => handleNavigation("/standings")}>
           Leaderboard
-        </button>
-        <button className="nav-btn" onClick={() => handleNavigation("/admin")}>
-          Admin
         </button>
 
         <div className="dropdown">

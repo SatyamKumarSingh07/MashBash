@@ -1,13 +1,19 @@
 // src/utils/api.js
 import axios from "axios";
 
-const API_URL = "https://mashbash.onrender.com/api/";
-const PUBLIC_API_URL = "https://mashbash.onrender.com/api/public/";
+// Use environment variables for flexibility (e.g., process.env.REACT_APP_API_URL)
+// Default to hardcoded values for now
+const API_URL = process.env.REACT_APP_API_URL || "https://mashbash.onrender.com/api/";
+const PUBLIC_API_URL =
+  process.env.REACT_APP_PUBLIC_API_URL || "https://mashbash.onrender.com/api/public/";
 
 const getAuthHeader = () => {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+// Configure axios defaults (optional: add timeout/retry)
+axios.defaults.timeout = 10000; // 10-second timeout
 
 export const fetchMatches = () => {
   return axios.get(`${API_URL}matches`, {
@@ -53,7 +59,9 @@ export const exportMatches = async () => {
     link.click();
     link.remove();
   } catch (error) {
-    throw error;
+    console.error("Failed to export matches:", error.message);
+    alert("Failed to export matches. Please try again or check the console for details.");
+    throw error; // Re-throw for further handling if needed
   }
 };
 

@@ -9,7 +9,6 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const PORT = process.env.PORT || 5000;
 const DATA_FILE = path.resolve(__dirname, "data.json");
-const USERS_FILE = path.resolve(__dirname, "data2.json");
 
 // CORS configuration
 const corsOptions = {
@@ -23,9 +22,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Initialize data2.json if it doesn't exist
-if (!fs.existsSync(USERS_FILE)) {
-  jsonfile.writeFileSync(USERS_FILE, { users: [], activeSessions: {} }, { spaces: 2 });
+// Initialize data.json if it doesn't exist
+if (!fs.existsSync(DATA_FILE)) {
+  jsonfile.writeFileSync(DATA_FILE, { matches: [] }, { spaces: 2 });
 }
 
 app.get("/", (req, res) => {
@@ -36,28 +35,20 @@ const VALID_ID = process.env.VALID_ID || "uniqueId123";
 const VALID_PASSWORD = process.env.VALID_PASSWORD || "secretPassword123";
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// Middleware to authenticate token
+// Middleware to authenticate token (simplified)
 const authenticateToken = (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) return res.status(401).json({ success: false, message: "No token provided" });
 
-  jwt.verify(token, JWT_SECRET, async (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ success: false, message: "Invalid token" });
-
-    // Check if session is still valid
-    const userData = await jsonfile.readFile(USERS_FILE);
-    const session = userData.activeSessions[user.id];
-    if (!session || session.token !== token) {
-      return res.status(403).json({ success: false, message: "Session expired" });
-    }
-    
     req.user = user;
     next();
   });
 };
 
-// Login endpoint with user tracking
-app.post("/api/login", async (req, res) => {
+// Login endpoint (no session tracking)
+app.post("/api/login", (req, res) => {
   const { id, password } = req.body;
 
   if (!id || !password) {
@@ -66,31 +57,6 @@ app.post("/api/login", async (req, res) => {
 
   if (id === VALID_ID && password === VALID_PASSWORD) {
     const token = jwt.sign({ id }, JWT_SECRET, { expiresIn: "24h" });
-    const userData = await jsonfile.readFile(USERS_FILE);
-    
-    // Update user info
-    const userIndex = userData.users.findIndex(u => u.id === id);
-    const userInfo = {
-      id,
-      lastLogin: new Date().toISOString(),
-      loginCount: userIndex !== -1 ? (userData.users[userIndex].loginCount || 0) + 1 : 1
-    };
-
-    if (userIndex === -1) {
-      userData.users.push(userInfo);
-    } else {
-      userData.users[userIndex] = userInfo;
-    }
-
-    // Track active session
-    userData.activeSessions[id] = {
-      token,
-      loginTime: new Date().toISOString(),
-      userAgent: req.headers["user-agent"]
-    };
-
-    await jsonfile.writeFile(USERS_FILE, userData, { spaces: 2 });
-    
     console.log(`POST /api/login - Successful login for ID: ${id}`);
     return res.json({ success: true, token });
   } else {
@@ -101,43 +67,6 @@ app.post("/api/login", async (req, res) => {
 
 // Handle OPTIONS preflight requests (CORS)
 app.options("/api/login", cors(corsOptions));
-
-// Admin endpoint to get user info
-app.get("/api/admin/users", authenticateToken, async (req, res) => {
-  try {
-    const userData = await jsonfile.readFile(USERS_FILE);
-    res.json({
-      success: true,
-      users: userData.users,
-      activeSessions: userData.activeSessions
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: "Failed to fetch user data" });
-  }
-});
-
-// Admin endpoint to logout a user
-app.post("/api/admin/logout/:userId", authenticateToken, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const userData = await jsonfile.readFile(USERS_FILE);
-    
-    // Only admin can logout other users (assuming VALID_ID is admin)
-    if (req.user.id !== VALID_ID) {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
-
-    if (userData.activeSessions[userId]) {
-      delete userData.activeSessions[userId];
-      await jsonfile.writeFile(USERS_FILE, userData, { spaces: 2 });
-      res.json({ success: true, message: "User logged out successfully" });
-    } else {
-      res.status(404).json({ success: false, message: "No active session found" });
-    }
-  } catch (err) {
-    res.status(500).json({ success: false, error: "Failed to logout user" });
-  }
-});
 
 // Protected match endpoints
 app.get("/api/matches", authenticateToken, async (req, res) => {
@@ -360,7 +289,6 @@ app.get("/api/public/matches", async (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Using data file: ${DATA_FILE}`);
-  console.log(`Using users file: ${USERS_FILE}`);
 });
 
 module.exports = app;

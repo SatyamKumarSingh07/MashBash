@@ -15,31 +15,35 @@ const FixturesPage = ({ matches, updateMatches }) => {
   const [teamACourt, setTeamACourt] = useState({ right: "", left: "" });
   const [teamBCourt, setTeamBCourt] = useState({ right: "", left: "" });
 
+  const fetchMatchesData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetchMatches();
+      if (response.data && Array.isArray(response.data)) {
+        console.log("Fetched matches in FixturesPage:", response.data);
+        updateMatches(response.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch matches:", err.response?.data || err.message);
+      setError("Failed to load matches: " + (err.response?.data?.message || "Please try again."));
+    } finally {
+      setLoading(false);
+      setIsInitialFetchDone(true);
+    }
+  }, [updateMatches]);
+
   useEffect(() => {
     console.log("FixturesPage received matches prop:", matches);
-    const fetchMatchesData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetchMatches();
-        if (response.data && Array.isArray(response.data)) {
-          console.log("Fetched matches in FixturesPage:", response.data);
-          updateMatches(response.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch matches:", err.response?.data || err.message);
-        setError("Failed to load matches: " + (err.response?.data?.message || "Please try again."));
-      } finally {
-        setLoading(false);
-        setIsInitialFetchDone(true);
-      }
-    };
-
     if (!matches || matches.length === 0) {
       fetchMatchesData();
     } else {
       setIsInitialFetchDone(true);
     }
-  }, [updateMatches, matches]);
+  }, [fetchMatchesData, matches]);
+
+  const handleRefresh = () => {
+    fetchMatchesData();
+  };
 
   const deleteMatchAction = useCallback(
     async (matchId) => {
@@ -109,15 +113,15 @@ const FixturesPage = ({ matches, updateMatches }) => {
   };
 
   const pendingMatches = useMemo(() => {
-    console.log("Pending Matches:", matches.filter((match) => match.status === "pending")); // Debug log
+    console.log("Pending Matches:", matches.filter((match) => match.status === "pending"));
     return matches.filter((match) => match.status === "pending");
   }, [matches]);
   const ongoingMatches = useMemo(() => {
-    console.log("Ongoing Matches:", matches.filter((match) => match.status === "ongoing")); // Debug log
+    console.log("Ongoing Matches:", matches.filter((match) => match.status === "ongoing"));
     return matches.filter((match) => match.status === "ongoing");
   }, [matches]);
   const completedMatches = useMemo(() => {
-    console.log("Completed Matches:", matches.filter((match) => match.status === "completed")); // Debug log
+    console.log("Completed Matches:", matches.filter((match) => match.status === "completed"));
     return matches.filter((match) => match.status === "completed");
   }, [matches]);
 
@@ -236,6 +240,9 @@ const FixturesPage = ({ matches, updateMatches }) => {
           </Link>
           <button className="export-btn" onClick={handleExport}>
             Export to Excel
+          </button>
+          <button className="refresh-btn" onClick={handleRefresh} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
       </div>

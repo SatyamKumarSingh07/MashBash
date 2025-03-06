@@ -35,7 +35,6 @@ function App() {
         console.log("Fetch matches response:", response.data);
         if (response.data && Array.isArray(response.data)) {
           setMatches(response.data);
-          console.log("Updated matches state in App.jsx:", response.data); // Add this log
           setFetchError(null);
         } else {
           setFetchError("Invalid response format from server");
