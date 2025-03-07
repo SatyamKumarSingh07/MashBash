@@ -2049,7 +2049,7 @@ button:hover {
         visibility: hidden;
     }
 }
-/* src/App.css */
+/* src/App.css
 .admin-dashboard {
     padding: 20px;
   }
@@ -2086,7 +2086,8 @@ button:hover {
   
   .admin-dashboard button:hover {
     background-color: #c82333;
-  }
+  } */
+   
   .error-message {
     background-color: #ffebee;
     color: #c62828;

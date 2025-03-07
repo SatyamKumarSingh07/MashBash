@@ -1,14 +1,12 @@
+require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
-const jsonfile = require("jsonfile");
+const mongoose = require("mongoose");
 const ExcelJS = require("exceljs");
-const path = require("path");
-const fs = require("fs");
 const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const DATA_FILE = path.resolve(__dirname, "data.json");
 
 // CORS configuration
 const corsOptions = {
@@ -22,10 +20,31 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Initialize data.json if it doesn't exist
-if (!fs.existsSync(DATA_FILE)) {
-  jsonfile.writeFileSync(DATA_FILE, { matches: [] }, { spaces: 2 });
-}
+// Connect to MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://zenprime0990:Satyam0101@AKPIhWE7vgLHlHcCluster0.q1inr.mongodb.net/badbash?retryWrites=true&w=majority&appName=Cluster0";
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// Define Match Schema
+const matchSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  matchType: { type: String, required: true },
+  playerA: String,
+  playerB: String,
+  teamA: { player1: String, player2: String },
+  teamB: { player1: String, player2: String },
+  totalSets: Number,
+  matchPoints: Number,
+  venue: String,
+  date: String,
+  status: { type: String, default: "pending" },
+  points: [{ id: String, scorer: String, timestamp: String, setNumber: Number }],
+  completedSets: [{ setNumber: Number, scoreA: Number, scoreB: Number, winner: String }],
+  servingTeam: String,
+});
+
+const Match = mongoose.model("Match", matchSchema);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the MashBash API", status: "running" });
@@ -35,7 +54,7 @@ const VALID_ID = process.env.VALID_ID || "uniqueId123";
 const VALID_PASSWORD = process.env.VALID_PASSWORD || "secretPassword123";
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// Middleware to authenticate token (simplified)
+// Middleware to authenticate token
 const authenticateToken = (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) return res.status(401).json({ success: false, message: "No token provided" });
@@ -47,7 +66,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Login endpoint (no session tracking)
+// Login endpoint
 app.post("/api/login", (req, res) => {
   const { id, password } = req.body;
 
@@ -65,15 +84,15 @@ app.post("/api/login", (req, res) => {
   }
 });
 
-// Handle OPTIONS preflight requests (CORS)
+// Handle OPTIONS preflight requests
 app.options("/api/login", cors(corsOptions));
 
 // Protected match endpoints
 app.get("/api/matches", authenticateToken, async (req, res) => {
   try {
-    const data = await jsonfile.readFile(DATA_FILE);
-    console.log("GET /api/matches - Fetched:", data.matches.length, "matches");
-    res.json(data.matches);
+    const matches = await Match.find();
+    console.log("GET /api/matches - Fetched:", matches.length, "matches");
+    res.json(matches);
   } catch (err) {
     console.error("Error in GET /api/matches:", err);
     res.status(500).json({ success: false, error: "Failed to read matches", details: err.message });
@@ -83,8 +102,7 @@ app.get("/api/matches", authenticateToken, async (req, res) => {
 app.get("/api/matches/:id", authenticateToken, async (req, res) => {
   try {
     const matchId = req.params.id;
-    const data = await jsonfile.readFile(DATA_FILE);
-    const match = data.matches.find((m) => m.id === matchId);
+    const match = await Match.findOne({ id: matchId });
     if (!match) {
       console.log(`GET /api/matches/${matchId} - Match not found`);
       return res.status(404).json({ success: false, error: "Match not found" });
@@ -99,17 +117,15 @@ app.get("/api/matches/:id", authenticateToken, async (req, res) => {
 
 app.post("/api/matches", authenticateToken, async (req, res) => {
   try {
-    const data = await jsonfile.readFile(DATA_FILE);
     const matchId = `${Date.now()}`;
-    const newMatch = {
+    const newMatch = new Match({
       ...req.body,
       id: matchId,
       points: [],
       completedSets: [],
       matchType: req.body.matchType.toLowerCase(),
-    };
-    data.matches.push(newMatch);
-    await jsonfile.writeFile(DATA_FILE, data, { spaces: 2 });
+    });
+    await newMatch.save();
     console.log("POST /api/matches - Match added with ID:", matchId);
     res.status(201).json(newMatch);
   } catch (err) {
@@ -122,25 +138,23 @@ app.put("/api/matches/:id", authenticateToken, async (req, res) => {
   try {
     const matchId = req.params.id;
     console.log(`PUT /api/matches/${matchId} - Updating match`);
-    const data = await jsonfile.readFile(DATA_FILE);
-    const matchIndex = data.matches.findIndex((m) => m.id === matchId);
+    const match = await Match.findOne({ id: matchId });
 
-    if (matchIndex === -1) {
+    if (!match) {
       console.log(`PUT /api/matches/${matchId} - Match not found`);
       return res.status(404).json({ success: false, error: "Match not found" });
     }
 
     const updatedMatch = {
-      ...data.matches[matchIndex],
       ...req.body,
       id: matchId,
-      matchType: req.body.matchType?.toLowerCase() || data.matches[matchIndex].matchType,
+      matchType: req.body.matchType?.toLowerCase() || match.matchType,
     };
 
-    data.matches[matchIndex] = updatedMatch;
-    await jsonfile.writeFile(DATA_FILE, data, { spaces: 2 });
+    await Match.updateOne({ id: matchId }, updatedMatch);
+    const updated = await Match.findOne({ id: matchId });
     console.log(`PUT /api/matches/${matchId} - Match updated successfully`);
-    res.json(updatedMatch);
+    res.json(updated);
   } catch (err) {
     console.error("Error in PUT /api/matches/:id:", err);
     res.status(500).json({ success: false, error: "Failed to update match", details: err.message });
@@ -151,21 +165,13 @@ app.delete("/api/matches/:id", authenticateToken, async (req, res) => {
   try {
     const matchId = req.params.id;
     console.log(`DELETE /api/matches/${matchId} - Attempting to delete match`);
-    const data = await jsonfile.readFile(DATA_FILE);
+    const result = await Match.deleteOne({ id: matchId });
 
-    console.log(
-      `Current matches in data.json:`,
-      data.matches.map((m) => m.id)
-    );
-    const matchIndex = data.matches.findIndex((match) => String(match.id) === String(matchId));
-
-    if (matchIndex === -1) {
+    if (result.deletedCount === 0) {
       console.log(`DELETE /api/matches/${matchId} - Match not found`);
       return res.status(404).json({ success: false, error: "Match not found" });
     }
 
-    data.matches.splice(matchIndex, 1);
-    await jsonfile.writeFile(DATA_FILE, data, { spaces: 2 });
     console.log(`DELETE /api/matches/${matchId} - Match deleted successfully`);
     res.json({ success: true, message: "Match deleted successfully" });
   } catch (err) {
@@ -176,7 +182,7 @@ app.delete("/api/matches/:id", authenticateToken, async (req, res) => {
 
 app.get("/api/export", authenticateToken, async (req, res) => {
   try {
-    const data = await jsonfile.readFile(DATA_FILE);
+    const matches = await Match.find();
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Matches");
 
@@ -185,7 +191,7 @@ app.get("/api/export", authenticateToken, async (req, res) => {
       { header: "Match Type", key: "matchType", width: 15 },
       { header: "Player A / Team A", key: "entityA", width: 25 },
       { header: "Player B / Team B", key: "entityB", width: 25 },
-      { header: "Match Points", key: "matchPoints", width: 12 }, // New column for matchPoints
+      { header: "Match Points", key: "matchPoints", width: 12 },
       { header: "Total Sets", key: "totalSets", width: 10 },
       { header: "Venue", key: "venue", width: 20 },
       { header: "Date", key: "date", width: 15 },
@@ -194,17 +200,17 @@ app.get("/api/export", authenticateToken, async (req, res) => {
       { header: "Set Points", key: "setPoints", width: 30 },
     ];
 
-    data.matches.forEach((match) => {
+    matches.forEach((match) => {
       let winner = "N/A";
       let setPoints = "N/A";
       let entityA =
         match.matchType.toLowerCase() === "singles"
           ? match.playerA
-          : `${match.teamA.player1}/${match.teamA.player2}`;
+          : `${match.teamA?.player1}/${match.teamA?.player2}`;
       let entityB =
         match.matchType.toLowerCase() === "singles"
           ? match.playerB
-          : `${match.teamB.player1}/${match.teamB.player2}`;
+          : `${match.teamB?.player1}/${match.teamB?.player2}`;
 
       if (match.status === "completed" && match.completedSets && match.completedSets.length > 0) {
         const winsA = match.completedSets.reduce(
@@ -241,7 +247,7 @@ app.get("/api/export", authenticateToken, async (req, res) => {
         matchType: match.matchType,
         entityA: entityA,
         entityB: entityB,
-        matchPoints: match.matchPoints || "N/A", // Include matchPoints, default to "N/A" if not present
+        matchPoints: match.matchPoints || "N/A",
         totalSets: match.totalSets,
         venue: match.venue,
         date: match.date,
@@ -263,24 +269,24 @@ app.get("/api/export", authenticateToken, async (req, res) => {
 
 app.get("/api/debug/data", authenticateToken, async (req, res) => {
   try {
-    const data = await jsonfile.readFile(DATA_FILE);
+    const matches = await Match.find();
     res.json({
       success: true,
-      matchCount: data.matches.length,
-      matchIds: data.matches.map((m) => m.id),
-      firstMatch: data.matches.length > 0 ? data.matches[0] : null,
+      matchCount: matches.length,
+      matchIds: matches.map((m) => m.id),
+      firstMatch: matches.length > 0 ? matches[0] : null,
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: "Failed to read data file", details: err.message });
+    res.status(500).json({ success: false, error: "Failed to read data", details: err.message });
   }
 });
 
-// Public endpoint to fetch all matches (no authentication required)
+// Public endpoint to fetch all matches
 app.get("/api/public/matches", async (req, res) => {
   try {
-    const data = await jsonfile.readFile(DATA_FILE);
-    console.log("GET /api/public/matches - Fetched:", data.matches.length, "matches");
-    res.json(data.matches);
+    const matches = await Match.find();
+    console.log("GET /api/public/matches - Fetched:", matches.length, "matches");
+    res.json(matches);
   } catch (err) {
     console.error("Error in GET /api/public/matches:", err);
     res.status(500).json({ success: false, error: "Failed to fetch matches", details: err.message });
@@ -290,7 +296,6 @@ app.get("/api/public/matches", async (req, res) => {
 // Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Using data file: ${DATA_FILE}`);
 });
 
 module.exports = app;

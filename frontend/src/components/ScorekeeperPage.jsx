@@ -432,7 +432,8 @@ const ScorekeeperPage = ({ matches, updateMatches }) => {
       <div className="scorekeeper-container">
         <div className="match-header">
           <h2 className="match-title">Set {currentSet} of {match.totalSets}</h2>
-          <div className="match-players">{renderPlayers()}</div>
+          <div className="match-players uppercase">{renderPlayers()}</div>
+          <p><span className="font-medium text-white">Match Format:</span> Best of {match.totalSets} sets, {match.matchPoints || 21}-points match</p>
         </div>
 
         <div className="sets-summary">

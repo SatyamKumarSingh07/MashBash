@@ -1,6 +1,6 @@
 // src/components/FixturesPage.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { fetchMatches, deleteMatch, updateMatch, exportMatches } from "../utils/api";
 
 const FixturesPage = ({ matches, updateMatches }) => {
@@ -11,10 +11,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
   const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
   const [tossSelection, setTossSelection] = useState(null);
   const [tossWinner, setTossWinner] = useState("");
-  const [courtSelection, setCourtSelection] = useState(null);
-  const [teamACourt, setTeamACourt] = useState({ right: "", left: "" });
-  const [teamBCourt, setTeamBCourt] = useState({ right: "", left: "" });
-  const [copySuccess, setCopySuccess] = useState(false); // State for copy feedback
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const fetchMatchesData = useCallback(async () => {
     try {
@@ -42,14 +39,11 @@ const FixturesPage = ({ matches, updateMatches }) => {
     }
   }, [fetchMatchesData, matches]);
 
-  const handleRefresh = () => {
-    fetchMatchesData();
-  };
+  const handleRefresh = () => fetchMatchesData();
 
   const deleteMatchAction = useCallback(
     async (matchId) => {
       if (!window.confirm(`Are you sure you want to delete match ${matchId}?`)) return;
-
       try {
         setActionLoading(true);
         setError(null);
@@ -71,10 +65,7 @@ const FixturesPage = ({ matches, updateMatches }) => {
     [matches, updateMatches]
   );
 
-  const handleStartMatch = useCallback(
-    (matchId) => navigate(`/scorekeeper/${matchId}`),
-    [navigate]
-  );
+  const handleStartMatch = useCallback((matchId) => navigate(`/scorekeeper/${matchId}`), [navigate]);
 
   const handleExport = useCallback(async () => {
     try {
@@ -89,11 +80,9 @@ const FixturesPage = ({ matches, updateMatches }) => {
     if (match.status !== "completed" || !match.completedSets || match.completedSets.length === 0) {
       return { winner: "N/A", setPoints: "N/A" };
     }
-
     const isSingles = match.matchType.toLowerCase() === "singles";
     const entityA = isSingles ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`;
     const entityB = isSingles ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`;
-
     const winsA = match.completedSets.reduce(
       (count, set) => count + (set.winner === (isSingles ? match.playerA : "Team A") ? 1 : 0),
       0
@@ -103,26 +92,20 @@ const FixturesPage = ({ matches, updateMatches }) => {
       0
     );
     const winner = winsA > winsB ? (isSingles ? `Player - ${entityA}` : `Team A - ${entityA}`) : winsB > winsA ? (isSingles ? `Player - ${entityB}` : `Team B - ${entityB}`) : "Tie";
-    const setPoints = match.completedSets.map(set => `${set.scoreA}-${set.scoreB}`).join(", ");
-
+    const setPoints = match.completedSets.map((set) => `${set.scoreA}-${set.scoreB}`).join(", ");
     return { winner, setPoints };
   };
 
-  const pendingMatches = useMemo(() => {
-    console.log("Pending Matches:", matches.filter((match) => match.status === "pending"));
-    return matches.filter((match) => match.status === "pending");
-  }, [matches]);
-  const ongoingMatches = useMemo(() => {
-    console.log("Ongoing Matches:", matches.filter((match) => match.status === "ongoing"));
-    return matches.filter((match) => match.status === "ongoing");
-  }, [matches]);
-  const completedMatches = useMemo(() => {
-    console.log("Completed Matches:", matches.filter((match) => match.status === "completed"));
-    return matches.filter((match) => match.status === "completed");
-  }, [matches]);
+  const pendingMatches = useMemo(() => matches.filter((match) => match.status === "pending"), [matches]);
+  const ongoingMatches = useMemo(() => matches.filter((match) => match.status === "ongoing"), [matches]);
+  const completedMatches = useMemo(() => matches.filter((match) => match.status === "completed"), [matches]);
 
   if (loading && !isInitialFetchDone) {
-    return <div className="loading">Loading matches...</div>;
+    return (
+      <div className="text-center py-20 text-xl text-gray-600 animate-pulse bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen flex items-center justify-center">
+        Loading matches...
+      </div>
+    );
   }
 
   const renderPlayers = (match) => {
@@ -130,14 +113,15 @@ const FixturesPage = ({ matches, updateMatches }) => {
     if (matchType === "singles") {
       return (
         <>
-          <span className="player-name">{match.playerA}</span> vs <span className="player-name">{match.playerB}</span>
+          <span className="font-semibold text-indigo-700">{match.playerA}</span> vs{" "}
+          <span className="font-semibold text-indigo-700">{match.playerB}</span>
         </>
       );
     } else if (matchType === "doubles" || matchType === "mixed") {
       return (
         <>
-          <span className="player-name">{match.teamA.player1}/{match.teamA.player2}</span> vs{" "}
-          <span className="player-name">{match.teamB.player1}/{match.teamB.player2}</span>
+          <span className="font-semibold text-indigo-700">{match.teamA.player1}/{match.teamA.player2}</span> vs{" "}
+          <span className="font-semibold text-indigo-700">{match.teamB.player1}/{match.teamB.player2}</span>
         </>
       );
     }
@@ -154,14 +138,13 @@ const FixturesPage = ({ matches, updateMatches }) => {
       setError("Please select a toss winner.");
       return;
     }
-
     setActionLoading(true);
     setError(null);
     try {
-      const matchToUpdate = matches.find(m => m.id === matchId);
+      const matchToUpdate = matches.find((m) => m.id === matchId);
       const updatedMatch = { ...matchToUpdate, tossWinner };
       await updateMatch(matchId, updatedMatch);
-      updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
+      updateMatches(matches.map((m) => (m.id === matchId ? updatedMatch : m)));
       setTossSelection(null);
     } catch (err) {
       console.error("Failed to update toss winner:", err.response?.data || err.message);
@@ -171,52 +154,18 @@ const FixturesPage = ({ matches, updateMatches }) => {
     }
   };
 
-  const initiateCourtSelection = (matchId) => {
-    setCourtSelection(matchId);
-    const match = matches.find(m => m.id === matchId);
-    setTeamACourt({ right: match.teamA.player1, left: match.teamA.player2 });
-    setTeamBCourt({ right: match.teamB.player1, left: match.teamB.player2 });
-  };
-
-  const handleCourtSubmit = async (matchId) => {
-    if (!teamACourt.right || !teamACourt.left || !teamBCourt.right || !teamBCourt.left) {
-      setError("Please assign all court positions.");
-      return;
-    }
-
-    setActionLoading(true);
-    setError(null);
-    try {
-      const matchToUpdate = matches.find(m => m.id === matchId);
-      const updatedMatch = { 
-        ...matchToUpdate, 
-        teamACourt: { right: teamACourt.right, left: teamACourt.left },
-        teamBCourt: { right: teamBCourt.right, left: teamBCourt.left }
-      };
-      await updateMatch(matchId, updatedMatch);
-      updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
-      setCourtSelection(null);
-    } catch (err) {
-      console.error("Failed to update court positions:", err.response?.data || err.message);
-      setError("Failed to update court positions: " + (err.response?.data?.message || err.message));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleServeChoice = async (matchId, choice) => {
     setActionLoading(true);
     setError(null);
     try {
-      const matchToUpdate = matches.find(m => m.id === matchId);
+      const matchToUpdate = matches.find((m) => m.id === matchId);
       let servingTeam = matchToUpdate.tossWinner === "Team A" ? "Team A" : "Team B";
       if (choice === "Receive") {
         servingTeam = matchToUpdate.tossWinner === "Team A" ? "Team B" : "Team A";
       }
-
       const updatedMatch = { ...matchToUpdate, servingTeam };
       await updateMatch(matchId, updatedMatch);
-      updateMatches(matches.map(m => m.id === matchId ? updatedMatch : m));
+      updateMatches(matches.map((m) => (m.id === matchId ? updatedMatch : m)));
       setTossSelection(null);
     } catch (err) {
       console.error("Failed to set serve choice:", err.response?.data || err.message);
@@ -226,13 +175,12 @@ const FixturesPage = ({ matches, updateMatches }) => {
     }
   };
 
-  // Function to copy the public score link to clipboard
   const handleCopyLink = () => {
-    const publicScoreUrl = "https://badbash.netlify.app/public-scores"; // Replace with your actual deployed URL
+    const publicScoreUrl = "https://badbash.netlify.app/public-scores";
     navigator.clipboard.writeText(publicScoreUrl)
       .then(() => {
         setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
+        setTimeout(() => setCopySuccess(false), 2000);
       })
       .catch((err) => {
         console.error("Failed to copy link:", err);
@@ -241,276 +189,251 @@ const FixturesPage = ({ matches, updateMatches }) => {
   };
 
   return (
-    <div className="fixtures-container">
-      <div className="fixtures-header">
-        <h2>Fixtures</h2>
-        <div className="header-actions">
-          <div className="copy-link-container">
-            <input
-              type="text"
-              value="https://badbash.netlify.app/public-scores"
-              readOnly
-              className="copy-link-input"
-            />
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4 bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-6">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 tracking-tight">
+            Fixtures Dashboard
+          </h1>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value="https://badbash.netlify.app/public-scores"
+                readOnly
+                className="px-4 py-2 border border-indigo-200 rounded-lg bg-indigo-50 text-indigo-800 text-sm w-full sm:w-64 shadow-inner"
+              />
+              <button
+                onClick={handleCopyLink}
+                disabled={copySuccess}
+                className={`px-4 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${copySuccess ? "bg-green-500" : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"}`}
+              >
+                {copySuccess ? "Copied!" : "Copy Link"}
+              </button>
+            </div>
             <button
-              className="copy-link-btn"
-              onClick={handleCopyLink}
-              disabled={copySuccess}
+              onClick={handleExport}
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 font-semibold transition-all duration-300 shadow-md"
             >
-              {copySuccess ? "Copied!" : "Copy Link"}
+              Export to Excel
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className={`px-4 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"}`}
+            >
+              {loading ? "Refreshing..." : "Refresh"}
             </button>
           </div>
-          <button className="export-btn" onClick={handleExport}>
-            Export to Excel
-          </button>
-          <button className="refresh-btn" onClick={handleRefresh} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
-        </div>
-      </div>
+        </header>
 
-      {error && <div className="error-message">{error}</div>}
-      {actionLoading && <div className="loading">Processing...</div>}
-
-      <div className="fixtures-section">
-        <h3>Pending Matches</h3>
-        {loading && !isInitialFetchDone && <div className="loading">Loading matches...</div>}
-        {!loading && isInitialFetchDone && pendingMatches.length === 0 && (
-          <p className="no-matches">No pending matches scheduled.</p>
-        )}
-        {!loading && isInitialFetchDone && pendingMatches.length > 0 && (
-          <div className="matches-grid">
-            {pendingMatches.map((match) => (
-              <div key={match.id} className="match-card">
-                <div className="match-info">
-                  <h2 className="match-title">{renderPlayers(match)}</h2>
-                  <p className="details">Match Type: {match.matchType}</p>
-                  <p className="details">Sets: {match.totalSets}</p>
-                  <p className="details">Venue: {match.venue}</p>
-                  <p className="details">Date: {new Date(match.date).toLocaleDateString()}</p>
-                  <p className={`status ${match.status.toLowerCase()}`}>
-                    Status: {match.status}
-                  </p>
-                </div>
-                <div className="card-actions">
-                  <button
-                    className="start-btn"
-                    onClick={() => handleStartMatch(match.id)}
-                    disabled={actionLoading || !match.servingTeam || 
-                              ((match.matchType.toLowerCase() === "doubles" || match.matchType.toLowerCase() === "mixed") && 
-                               (!match.teamACourt || !match.teamBCourt))}
-                  >
-                    Start Match
-                  </button>
-                  <button
-                    className="delete-btn"
-                    onClick={() => deleteMatchAction(match.id)}
-                    disabled={actionLoading}
-                  >
-                    Delete
-                  </button>
-                  {!match.tossWinner && (
-                    <button
-                      className="toss-btn"
-                      onClick={() => initiateToss(match.id)}
-                      disabled={actionLoading}
-                    >
-                      Toss
-                    </button>
-                  )}
-                  {tossSelection === match.id && !match.tossWinner && (
-                    <div className="toss-result">
-                      <p>Who won the toss?</p>
-                      <select
-                        value={tossWinner}
-                        onChange={(e) => setTossWinner(e.target.value)}
-                        disabled={actionLoading}
-                      >
-                        <option value="">Select Toss Winner</option>
-                        {match.matchType.toLowerCase() === "singles" ? (
-                          <>
-                            <option value="Team A">{match.playerA}</option>
-                            <option value="Team B">{match.playerB}</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="Team A">{`${match.teamA.player1}/${match.teamA.player2}`}</option>
-                            <option value="Team B">{`${match.teamB.player1}/${match.teamB.player2}`}</option>
-                          </>
-                        )}
-                      </select>
-                      <button
-                        className="submit-toss-btn"
-                        onClick={() => handleTossSubmit(match.id)}
-                        disabled={actionLoading || !tossWinner}
-                      >
-                        Submit Toss
-                      </button>
-                    </div>
-                  )}
-                  {match.tossWinner && !match.servingTeam && (
-                    <div className="toss-result">
-                      <p>Toss Winner: {match.tossWinner === "Team A" 
-                        ? (match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`)
-                        : (match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`)}</p>
-                      <button
-                        className="serve-btn"
-                        onClick={() => handleServeChoice(match.id, "Serve")}
-                        disabled={actionLoading}
-                      >
-                        Serve
-                      </button>
-                      <button
-                        className="receive-btn"
-                        onClick={() => handleServeChoice(match.id, "Receive")}
-                        disabled={actionLoading}
-                      >
-                        Receive
-                      </button>
-                    </div>
-                  )}
-                  {(match.matchType.toLowerCase() === "doubles" || match.matchType.toLowerCase() === "mixed") && match.servingTeam && !match.teamACourt && (
-                    <button
-                      className="court-btn"
-                      onClick={() => initiateCourtSelection(match.id)}
-                      disabled={actionLoading}
-                    >
-                      Set Court Positions
-                    </button>
-                  )}
-                  {courtSelection === match.id && !match.teamACourt && (
-                    <div className="court-selection">
-                      <p>Team A Court Positions</p>
-                      <select
-                        value={teamACourt.right}
-                        onChange={(e) => setTeamACourt({ ...teamACourt, right: e.target.value, left: e.target.value === match.teamA.player1 ? match.teamA.player2 : match.teamA.player1 })}
-                        disabled={actionLoading}
-                      >
-                        <option value="">Select Right Side</option>
-                        <option value={match.teamA.player1}>{match.teamA.player1}</option>
-                        <option value={match.teamA.player2}>{match.teamA.player2}</option>
-                      </select>
-                      <select
-                        value={teamACourt.left}
-                        onChange={(e) => setTeamACourt({ ...teamACourt, left: e.target.value, right: e.target.value === match.teamA.player1 ? match.teamA.player2 : match.teamA.player1 })}
-                        disabled={actionLoading}
-                      >
-                        <option value="">Select Left Side</option>
-                        <option value={match.teamA.player1}>{match.teamA.player1}</option>
-                        <option value={match.teamA.player2}>{match.teamA.player2}</option>
-                      </select>
-                      <p>Team B Court Positions</p>
-                      <select
-                        value={teamBCourt.right}
-                        onChange={(e) => setTeamBCourt({ ...teamBCourt, right: e.target.value, left: e.target.value === match.teamB.player1 ? match.teamB.player2 : match.teamB.player1 })}
-                        disabled={actionLoading}
-                      >
-                        <option value="">Select Right Side</option>
-                        <option value={match.teamB.player1}>{match.teamB.player1}</option>
-                        <option value={match.teamB.player2}>{match.teamB.player2}</option>
-                      </select>
-                      <select
-                        value={teamBCourt.left}
-                        onChange={(e) => setTeamBCourt({ ...teamBCourt, left: e.target.value, right: e.target.value === match.teamB.player1 ? match.teamB.player2 : match.teamB.player1 })}
-                        disabled={actionLoading}
-                      >
-                        <option value="">Select Left Side</option>
-                        <option value={match.teamB.player1}>{match.teamB.player1}</option>
-                        <option value={match.teamB.player2}>{match.teamB.player2}</option>
-                      </select>
-                      <button
-                        className="submit-court-btn"
-                        onClick={() => handleCourtSubmit(match.id)}
-                        disabled={actionLoading || !teamACourt.right || !teamACourt.left || !teamBCourt.right || !teamBCourt.left}
-                      >
-                        Submit Court Positions
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+        {/* Error and Action Loading */}
+        {error && (
+          <div className="bg-red-100/90 backdrop-blur-sm border-l-4 border-red-500 text-red-800 p-4 rounded-lg mb-8 text-sm shadow-md animate-slide-in">
+            {error}
           </div>
         )}
-      </div>
+        {actionLoading && (
+          <div className="text-center text-indigo-600 animate-pulse mb-8 text-lg font-medium">Processing...</div>
+        )}
 
-      <div className="fixtures-section">
-        <h3>Matches In Progress</h3>
-        {loading && !isInitialFetchDone && <div className="loading">Loading matches...</div>}
-        {!loading && isInitialFetchDone && ongoingMatches.length === 0 && (
-          <p className="no-matches">No matches in progress.</p>
-        )}
-        {!loading && isInitialFetchDone && ongoingMatches.length > 0 && (
-          <div className="matches-grid">
-            {ongoingMatches.map((match) => (
-              <div key={match.id} className="match-card ongoing">
-                <div className="match-info">
-                  <h2 className="match-title">{renderPlayers(match)}</h2>
-                  <p className="details">Match Type: {match.matchType}</p>
-                  <p className="details">Sets: {match.totalSets}</p>
-                  <p className="details">Venue: {match.venue}</p>
-                  <p className="details">Date: {new Date(match.date).toLocaleDateString()}</p>
-                  <p className="details">
-                    Sets Completed: {(match.completedSets || []).length} of {match.totalSets}
-                  </p>
-                  <p className={`status ${match.status.toLowerCase()}`}>
-                    Status: {match.status}
-                  </p>
-                </div>
-                <div className="card-actions">
-                  <button
-                    className="continue-btn"
-                    onClick={() => handleStartMatch(match.id)}
-                    disabled={actionLoading}
-                  >
-                    Continue Match
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="fixtures-section">
-        <h3>Completed Matches</h3>
-        {loading && !isInitialFetchDone && <div className="loading">Loading matches...</div>}
-        {!loading && isInitialFetchDone && completedMatches.length === 0 && (
-          <p className="no-matches">No matches completed yet.</p>
-        )}
-        {!loading && isInitialFetchDone && completedMatches.length > 0 && (
-          <div className="matches-grid">
-            {completedMatches.map((match) => {
-              const { winner, setPoints } = getMatchResult(match);
-              return (
-                <div key={match.id} className="match-card completed">
-                  <div className="match-info">
-                    <h2 className="match-title">{renderPlayers(match)}</h2>
-                    <p className="details">Match Type: {match.matchType}</p>
-                    <p className="details">Sets: {match.totalSets}</p>
-                    <p className="details">Venue: {match.venue}</p>
-                    <p className="details">Date: {new Date(match.date).toLocaleDateString()}</p>
-                    <p className={`status ${match.status.toLowerCase()}`}>
-                      Status: {match.status}
-                    </p>
-                    <p className="match-winner">Winner: {winner}</p>
-                    <p className="set-points">Set Points: {setPoints}</p>
+        {/* Matches Sections */}
+        <section className="space-y-12">
+          {/* Pending Matches */}
+          <div className="animate-fade-in">
+            <h2 className="text-3xl font-bold text-yellow-600 mb-6 border-b-4 border-yellow-300 pb-2 bg-gradient-to-r from-yellow-50 to-transparent rounded-t-lg pl-4">Pending Matches</h2>
+            {pendingMatches.length === 0 && isInitialFetchDone && (
+              <p className="text-center text-gray-600 italic py-6 text-lg">No pending matches scheduled.</p>
+            )}
+            {pendingMatches.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pendingMatches.map((match) => (
+                  <div key={match.id} className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-5 border-l-4 border-yellow-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800 truncate">{renderPlayers(match)}</h3>
+                      <p className="text-sm text-gray-900 mt-1">Match Type: <span className="font-medium text-indigo-600">{match.matchType}</span></p>
+                      <p className="text-sm text-gray-900">Sets: <span className="font-medium text-indigo-600">{match.totalSets}</span></p>
+                      <p className="text-sm text-gray-900">Venue: <span className="font-medium text-indigo-600">{match.venue}</span></p>
+                      <p className="text-sm text-gray-900">Date: <span className="font-medium text-indigo-600">{new Date(match.date).toLocaleDateString()}</span></p>
+                      <p className="text-sm text-yellow-600 font-semibold mt-2">Status: Pending</p>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => handleStartMatch(match.id)}
+                        disabled={actionLoading || !match.servingTeam}
+                        className={`px-4 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${actionLoading || !match.servingTeam ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600"}`}
+                      >
+                        Start Match
+                      </button>
+                      <button
+                        onClick={() => deleteMatchAction(match.id)}
+                        disabled={actionLoading}
+                        className={`px-4 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${actionLoading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"}`}
+                      >
+                        Delete
+                      </button>
+                      {!match.tossWinner && (
+                        <button
+                          onClick={() => initiateToss(match.id)}
+                          disabled={actionLoading}
+                          className={`px-4 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${actionLoading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"}`}
+                        >
+                          Toss
+                        </button>
+                      )}
+                      {tossSelection === match.id && !match.tossWinner && (
+                        <div className="mt-3 space-y-3 bg-gray-50 p-3 rounded-lg shadow-inner">
+                          <p className="text-sm text-gray-700 font-medium">Who won the toss?</p>
+                          <select
+                            value={tossWinner}
+                            onChange={(e) => setTossWinner(e.target.value)}
+                            disabled={actionLoading}
+                            className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200"
+                          >
+                            <option value="">Select Toss Winner</option>
+                            {match.matchType.toLowerCase() === "singles" ? (
+                              <>
+                                <option value="Team A">{match.playerA}</option>
+                                <option value="Team B">{match.playerB}</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Team A">{`${match.teamA.player1}/${match.teamA.player2}`}</option>
+                                <option value="Team B">{`${match.teamB.player1}/${match.teamB.player2}`}</option>
+                              </>
+                            )}
+                          </select>
+                          <button
+                            onClick={() => handleTossSubmit(match.id)}
+                            disabled={actionLoading || !tossWinner}
+                            className={`w-full px-4 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${actionLoading || !tossWinner ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"}`}
+                          >
+                            Submit Toss
+                          </button>
+                        </div>
+                      )}
+                      {match.tossWinner && !match.servingTeam && (
+                        <div className="mt-3 space-y-3 bg-gray-50 p-3 rounded-lg shadow-inner">
+                          <p className="text-sm text-gray-700 font-medium">
+                            Toss Winner: {match.tossWinner === "Team A" 
+                              ? (match.matchType.toLowerCase() === "singles" ? match.playerA : `${match.teamA.player1}/${match.teamA.player2}`)
+                              : (match.matchType.toLowerCase() === "singles" ? match.playerB : `${match.teamB.player1}/${match.teamB.player2}`)}
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleServeChoice(match.id, "Serve")}
+                              disabled={actionLoading}
+                              className={`flex-1 px-3 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${actionLoading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"}`}
+                            >
+                              Serve
+                            </button>
+                            <button
+                              onClick={() => handleServeChoice(match.id, "Receive")}
+                              disabled={actionLoading}
+                              className={`flex-1 px-3 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${actionLoading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"}`}
+                            >
+                              Receive
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="card-actions">
-                    {/* Removed View Summary button as per request */}
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Ongoing Matches */}
+          <div className="animate-fade-in">
+            <h2 className="text-3xl font-bold text-red-600 mb-6 border-b-4 border-red-300 pb-2 bg-gradient-to-r from-red-50 to-transparent rounded-t-lg pl-4">Matches In Progress</h2>
+            {ongoingMatches.length === 0 && isInitialFetchDone && (
+              <p className="text-center text-gray-600 italic py-6 text-lg">No matches in progress.</p>
+            )}
+            {ongoingMatches.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {ongoingMatches.map((match) => (
+                  <div key={match.id} className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-5 border-l-4 border-red-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800 truncate">{renderPlayers(match)}</h3>
+                      <p className="text-sm text-gray-600 mt-1">Match Type: <span className="font-medium text-indigo-600">{match.matchType}</span></p>
+                      <p className="text-sm text-gray-600">Sets: <span className="font-medium text-indigo-600">{match.totalSets}</span></p>
+                      <p className="text-sm text-gray-600">Venue: <span className="font-medium text-indigo-600">{match.venue}</span></p>
+                      <p className="text-sm text-gray-600">Date: <span className="font-medium text-indigo-600">{new Date(match.date).toLocaleDateString()}</span></p>
+                      <p className="text-sm text-gray-600">Sets Completed: <span className="font-medium text-indigo-600">{(match.completedSets || []).length} of {match.totalSets}</span></p>
+                      <p className="text-sm text-red-600 font-semibold mt-2">Status: Ongoing</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleStartMatch(match.id)}
+                        disabled={actionLoading}
+                        className={`px-4 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-md ${actionLoading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"}`}
+                      >
+                        Continue Match
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Completed Matches */}
+          <div className="animate-fade-in">
+            <h2 className="text-3xl font-bold text-green-600 mb-6 border-b-4 border-green-300 pb-2 bg-gradient-to-r from-green-50 to-transparent rounded-t-lg pl-4">Completed Matches</h2>
+            {completedMatches.length === 0 && isInitialFetchDone && (
+              <p className="text-center text-gray-600 italic py-6 text-lg">No matches completed yet.</p>
+            )}
+            {completedMatches.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {completedMatches.map((match) => {
+                  const { winner, setPoints } = getMatchResult(match);
+                  return (
+                    <div key={match.id} className="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-5 border-l-4 border-green-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold text-gray-800 truncate">{renderPlayers(match)}</h3>
+                        <p className="text-sm text-gray-600 mt-1">Match Type: <span className="font-medium text-indigo-600">{match.matchType}</span></p>
+                        <p className="text-sm text-gray-600">Sets: <span className="font-medium text-indigo-600">{match.totalSets}</span></p>
+                        <p className="text-sm text-gray-600">Venue: <span className="font-medium text-indigo-600">{match.venue}</span></p>
+                        <p className="text-sm text-gray-600">Date: <span className="font-medium text-indigo-600">{new Date(match.date).toLocaleDateString()}</span></p>
+                        <p className="text-sm text-green-600 font-semibold mt-2">Status: Completed</p>
+                        <p className="text-sm text-gray-700 mt-1">Winner: <span className="font-semibold text-green-700">{winner}</span></p>
+                        <p className="text-sm text-gray-600">Set Points: <span className="font-medium text-indigo-600">{setPoints}</span></p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* No Matches Message */}
+        {!loading && isInitialFetchDone && matches.length === 0 && (
+          <div className="text-center py-12 text-gray-600 italic text-lg bg-white/80 backdrop-blur-md rounded-xl shadow-lg mt-10">
+            <p>No ongoing, upcoming, or completed matches.</p>
           </div>
         )}
       </div>
 
-      {!loading && isInitialFetchDone && matches.length === 0 && (
-        <div className="no-matches-message">
-          <p>No ongoing, upcoming, or completed matches.</p>
-        </div>
-      )}
+      {/* Global Styles for Animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { transform: translateY(-20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.6s ease-out;
+        }
+        .animate-slide-in {
+          animation: slideIn 0.5s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
