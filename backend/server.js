@@ -21,7 +21,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://zenprime0990:Satyam0101@AKPIhWE7vgLHlHcCluster0.q1inr.mongodb.net/badbash?retryWrites=true&w=majority&appName=Cluster0";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://zenprime0990:Satyam0101@cluster0.q1inr.mongodb.net/badbash?retryWrites=true&w=majority";
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
@@ -147,7 +147,7 @@ app.put("/api/matches/:id", authenticateToken, async (req, res) => {
 
     const updatedMatch = {
       ...req.body,
-      id: matchId,
+      id: matchId, // Fixed from updateMatchId to matchId
       matchType: req.body.matchType?.toLowerCase() || match.matchType,
     };
 
